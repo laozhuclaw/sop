@@ -5,7 +5,7 @@
  *
  * Responsibilities:
  *  - Persist a single shared `state` object (the same shape the frontend already uses).
- *  - Store uploaded .mp3 audio blobs on the filesystem.
+ *  - Store uploaded .mp3 audio blobs and .mp4 video blobs on the filesystem.
  *  - Serve the static frontend (index.html, script.js, styles.css, image).
  *
  * Concurrency model: optimistic versioning.
@@ -17,6 +17,8 @@
  *   - data/state.json (atomically written via tmp + rename)
  *   - data/uploads/<audioId>.mp3       (binary)
  *   - data/uploads/<audioId>.meta.json (originalName, mime, size, uploadedAt)
+ *   - data/videos/<audioId>.mp4        (binary)
+ *   - data/videos/<audioId>.meta.json  (originalName, mime, size, uploadedAt)
  */
 
 const express = require("express");
@@ -29,6 +31,7 @@ const crypto = require("crypto");
 const ROOT = path.resolve(__dirname, "..");
 const DATA_DIR = path.join(__dirname, "data");
 const UPLOAD_DIR = path.join(DATA_DIR, "uploads");
+const VIDEO_DIR = path.join(DATA_DIR, "videos");
 const STATE_FILE = path.join(DATA_DIR, "state.json");
 const STATE_TMP = path.join(DATA_DIR, "state.json.tmp");
 
@@ -36,9 +39,11 @@ const PORT = Number(process.env.PORT || 3000);
 const HOST = process.env.HOST || "0.0.0.0";
 const BODY_LIMIT = process.env.BODY_LIMIT || "20mb";
 const MAX_AUDIO_MB = Number(process.env.MAX_AUDIO_MB || 50);
+const MAX_VIDEO_MB = Number(process.env.MAX_VIDEO_MB || 300);
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || ""; // optional: required for /api/reset
 
 fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+fs.mkdirSync(VIDEO_DIR, { recursive: true });
 
 // --- in-process write lock for state.json ----------------------------------
 // Express handles requests on a single thread, but writes go through fs which
@@ -87,6 +92,16 @@ function audioPaths(id) {
   return {
     blob: path.join(UPLOAD_DIR, `${safe}.mp3`),
     meta: path.join(UPLOAD_DIR, `${safe}.meta.json`),
+    safeId: safe,
+  };
+}
+
+function videoPaths(id) {
+  const safe = String(id).replace(/[^A-Za-z0-9_\-]/g, "");
+  if (!safe) throw new Error("invalid video id");
+  return {
+    blob: path.join(VIDEO_DIR, `${safe}.mp4`),
+    meta: path.join(VIDEO_DIR, `${safe}.meta.json`),
     safeId: safe,
   };
 }
@@ -184,10 +199,12 @@ app.post("/api/reset", async (req, res) => {
     await withStateLock(async () => {
       await writeStateAtomically(emptyState());
     });
-    // also wipe uploads
-    const entries = await fsp.readdir(UPLOAD_DIR);
+    // also wipe uploaded media
     await Promise.all(
-      entries.map((name) => fsp.unlink(path.join(UPLOAD_DIR, name)).catch(() => {})),
+      [UPLOAD_DIR, VIDEO_DIR].map(async (dir) => {
+        const entries = await fsp.readdir(dir).catch(() => []);
+        await Promise.all(entries.map((name) => fsp.unlink(path.join(dir, name)).catch(() => {})));
+      }),
     );
     res.json({ ok: true });
   } catch (err) {
@@ -200,6 +217,11 @@ app.post("/api/reset", async (req, res) => {
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: MAX_AUDIO_MB * 1024 * 1024 },
+});
+
+const uploadVideo = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: MAX_VIDEO_MB * 1024 * 1024 },
 });
 
 app.post("/api/audio/:id", upload.single("file"), async (req, res) => {
@@ -287,6 +309,91 @@ app.delete("/api/audio/:id", async (req, res) => {
   }
 });
 
+// --- API: video --------------------------------------------------------------
+app.post("/api/video/:id", uploadVideo.single("file"), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: "file_required" });
+  try {
+    const { blob, meta, safeId } = videoPaths(req.params.id);
+    const fileName = req.body.fileName || req.file.originalname || `${safeId}.mp4`;
+    const mimeType = req.file.mimetype || "video/mp4";
+    const size = req.file.size;
+    const uploadedAt = new Date().toISOString();
+    const checksum = crypto
+      .createHash("sha1")
+      .update(req.file.buffer)
+      .digest("hex");
+
+    await fsp.writeFile(blob, req.file.buffer);
+    await fsp.writeFile(
+      meta,
+      JSON.stringify({ id: safeId, fileName, mimeType, size, uploadedAt, checksum }, null, 2),
+      "utf8",
+    );
+    res.json({ id: safeId, fileName, size, uploadedAt, checksum });
+  } catch (err) {
+    console.error("video upload failed", err);
+    res.status(500).json({ error: "upload_failed" });
+  }
+});
+
+async function videoFileInfo(id) {
+  const { blob, meta } = videoPaths(id);
+  let metaInfo = null;
+  try {
+    metaInfo = JSON.parse(await fsp.readFile(meta, "utf8"));
+  } catch {}
+  const stat = await fsp.stat(blob).catch(() => null);
+  return { blob, metaInfo, stat };
+}
+
+function setVideoHeaders(res, stat, metaInfo) {
+  res.setHeader("Content-Type", metaInfo?.mimeType || "video/mp4");
+  res.setHeader("Content-Length", stat.size);
+  if (metaInfo?.checksum) res.setHeader("X-Video-Checksum", metaInfo.checksum);
+  if (metaInfo?.fileName) {
+    res.setHeader(
+      "Content-Disposition",
+      `inline; filename*=UTF-8''${encodeURIComponent(metaInfo.fileName)}`,
+    );
+  }
+}
+
+app.head("/api/video/:id", async (req, res) => {
+  try {
+    const { metaInfo, stat } = await videoFileInfo(req.params.id);
+    if (!stat) return res.sendStatus(404);
+    setVideoHeaders(res, stat, metaInfo);
+    res.status(200).end();
+  } catch (err) {
+    console.error("video head failed", err);
+    res.sendStatus(500);
+  }
+});
+
+app.get("/api/video/:id", async (req, res) => {
+  try {
+    const { blob, metaInfo, stat } = await videoFileInfo(req.params.id);
+    if (!stat) return res.status(404).json({ error: "not_found" });
+    setVideoHeaders(res, stat, metaInfo);
+    fs.createReadStream(blob).pipe(res);
+  } catch (err) {
+    console.error("video fetch failed", err);
+    res.status(500).json({ error: "fetch_failed" });
+  }
+});
+
+app.delete("/api/video/:id", async (req, res) => {
+  try {
+    const { blob, meta } = videoPaths(req.params.id);
+    await fsp.unlink(blob).catch(() => {});
+    await fsp.unlink(meta).catch(() => {});
+    res.json({ ok: true });
+  } catch (err) {
+    console.error("video delete failed", err);
+    res.status(500).json({ error: "delete_failed" });
+  }
+});
+
 // --- multer error handler ---------------------------------------------------
 app.use((err, _req, res, next) => {
   if (err instanceof multer.MulterError) {
@@ -316,5 +423,6 @@ app.listen(PORT, HOST, () => {
   console.log(`AICP SOP console listening on http://${HOST}:${PORT}`);
   console.log(`State file: ${STATE_FILE}`);
   console.log(`Upload dir: ${UPLOAD_DIR}`);
+  console.log(`Video dir: ${VIDEO_DIR}`);
   if (ADMIN_TOKEN) console.log("ADMIN_TOKEN is set; /api/reset is protected.");
 });

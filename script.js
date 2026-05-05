@@ -482,6 +482,41 @@ async function deleteAudioBlob(id) {
   await fetch(apiUrl(`audio/${encodeURIComponent(id)}`), { method: "DELETE" }).catch(() => {});
 }
 
+async function saveVideoBlob(id, file) {
+  if (!file || !file.size) return null;
+  const form = new FormData();
+  form.append("file", file, normalizeMp4(file.name));
+  form.append("fileName", normalizeMp4(file.name));
+  const res = await fetch(apiUrl(`video/${encodeURIComponent(id)}`), {
+    method: "POST",
+    body: form,
+  });
+  if (!res.ok) throw new Error(`video upload failed (HTTP ${res.status})`);
+  const stored = await res.json();
+  await verifyVideoBlob(id, stored.size || file.size);
+  return stored;
+}
+
+async function verifyVideoBlob(id, expectedSize) {
+  const res = await fetch(apiUrl(`video/${encodeURIComponent(id)}`), { method: "HEAD" });
+  if (!res.ok) throw new Error(`server video verify failed (HTTP ${res.status})`);
+  const serverSize = Number(res.headers.get("Content-Length") || 0);
+  if (expectedSize && serverSize !== Number(expectedSize)) {
+    throw new Error(`server video size mismatch (${serverSize}/${expectedSize})`);
+  }
+  return true;
+}
+
+function getVideoUrl(id) {
+  const item = state?.audio?.find((audio) => audio.id === id);
+  const v = item?.videoUploadedAt ? `?v=${encodeURIComponent(item.videoUploadedAt)}` : "";
+  return apiUrl(`video/${encodeURIComponent(id)}${v}`);
+}
+
+async function deleteVideoBlob(id) {
+  await fetch(apiUrl(`video/${encodeURIComponent(id)}`), { method: "DELETE" }).catch(() => {});
+}
+
 // Bootstrap-time placeholder: returns a normalized empty state with the
 // per-browser current user (if any) restored from localStorage. The real data
 // is fetched from the server immediately after via hydrateFromServer().
@@ -1009,6 +1044,7 @@ const audioFields = [
   ["round", "轮次", "selectRound"],
   ["tags", "标签", "selectSceneTag"],
   ["audioName", "录音文件名"],
+  ["videoName", "视频文件名"],
   ["device", "采集设备", "selectDevice"],
   ["period", "时间段"],
   ["minutes", "录音时长(分)", "number"],
@@ -1020,6 +1056,7 @@ const audioFields = [
   ["devSupport", "开发数据支撑点", "textarea", "field-wide"],
   ["action", "建议动作", "textarea", "field-wide"],
   ["audioFile", "上传mp3文件", "file", "field-wide"],
+  ["videoFile", "上传mp4视频", "videoFile", "field-wide"],
   ["status", "状态", "selectAudioStatus"],
 ];
 
@@ -1096,6 +1133,9 @@ function fieldMarkup(name, label, type = "text", className = "") {
   }
   if (type === "file") {
     return `<label class="${className}"><span>${label}</span><input name="${name}" type="file" accept="audio/mpeg,audio/mp3,.mp3" /></label>`;
+  }
+  if (type === "videoFile") {
+    return `<label class="${className}"><span>${label}</span><input name="${name}" type="file" accept="video/mp4,.mp4" /></label>`;
   }
   if (type === "number") {
     return `<label class="${className}"><span>${label}</span><input name="${name}" type="number" min="0" step="1" /></label>`;
@@ -1180,9 +1220,12 @@ function recordFromForm(data) {
 function audioFromForm(data) {
   const scene = getScene(data.sceneId);
   const uploadedFile = data.audioFile && data.audioFile.size ? data.audioFile : null;
+  const uploadedVideo = data.videoFile && data.videoFile.size ? data.videoFile : null;
+  const defaultMediaBase = `${scene.id}_${data.round || 1}`;
   return {
     id: data.id || `AUD-${String(state.audio.length + 1).padStart(3, "0")}`,
-    audioName: normalizeMp3(data.audioName || uploadedFile?.name || `${scene.id}_${data.round || 1}.mp3`),
+    audioName: normalizeMp3(data.audioName || uploadedFile?.name || `${defaultMediaBase}.mp3`),
+    videoName: normalizeMp4(data.videoName || uploadedVideo?.name || `${defaultMediaBase}.mp4`),
     sceneId: data.sceneId,
     round: data.round || "1",
     tags: data.tags || scene.tags || "测试数据",
@@ -1203,6 +1246,11 @@ function audioFromForm(data) {
     audioUploadedAt: data.audioUploadedAt || "",
     serverVerifiedAt: data.serverVerifiedAt || "",
     serverChecksum: data.serverChecksum || "",
+    hasVideoFile: uploadedVideo ? true : Boolean(data.hasVideoFile),
+    videoFileSize: data.videoFileSize || "",
+    videoUploadedAt: data.videoUploadedAt || "",
+    videoServerVerifiedAt: data.videoServerVerifiedAt || "",
+    videoServerChecksum: data.videoServerChecksum || "",
     ...currentUserFields(),
     note: "",
   };
@@ -1234,6 +1282,12 @@ function normalizeMp3(fileName) {
   const value = String(fileName || "").trim();
   if (!value) return "";
   return value.replace(/\.(wav|m4a|mp4|aac)$/i, ".mp3").replace(/\.mp3$/i, ".mp3");
+}
+
+function normalizeMp4(fileName) {
+  const value = String(fileName || "").trim();
+  if (!value) return "";
+  return value.replace(/\.(mov|m4v|avi|mkv|webm)$/i, ".mp4").replace(/\.mp4$/i, ".mp4");
 }
 
 function renderRecords() {
@@ -1273,6 +1327,10 @@ function renderAudio() {
           <td class="audio-cell" data-audio-player="${audio.id}">
             ${audio.hasAudioFile ? '<span class="audio-loading">加载中</span>' : '<span class="muted-text">未上传</span>'}
           </td>
+          <td>${escapeHtml(audio.videoName || "")}</td>
+          <td class="video-cell" data-video-player="${audio.id}">
+            ${audio.hasVideoFile ? '<span class="audio-loading">加载中</span>' : '<span class="muted-text">未上传</span>'}
+          </td>
           <td>${audio.sceneId}<br />${escapeHtml(audio.target)}</td>
           <td>${audio.round}</td>
           <td>${escapeHtml(audio.keywords)}</td>
@@ -1301,6 +1359,17 @@ function hydrateAudioPlayers() {
     cell.innerHTML = `
       <audio controls preload="metadata" src="${url}"></audio>
       <a class="download-link" href="${url}" download="${attr(audio.audioName || `${id}.mp3`)}">下载</a>
+    `;
+  });
+  const videoCells = $$("[data-video-player]");
+  videoCells.forEach((cell) => {
+    const id = cell.dataset.videoPlayer;
+    const audio = state.audio.find((item) => item.id === id);
+    if (!audio?.hasVideoFile) return;
+    const url = getVideoUrl(id);
+    cell.innerHTML = `
+      <video controls preload="metadata" src="${url}"></video>
+      <a class="download-link" href="${url}" download="${attr(audio.videoName || `${id}.mp4`)}">下载</a>
     `;
   });
 }
@@ -1607,18 +1676,20 @@ function exportJson() {
 
 function exportCsv() {
   const rows = [
-    ["类型", "ID", "场景ID", "目标场景", "录音文件", "标签", "关键词", "开发支撑点", "状态/结果", "提交人", "手机号", "单位", "角色", "本地音频"],
+    ["类型", "ID", "场景ID", "目标场景", "录音文件", "视频文件", "标签", "关键词", "开发支撑点", "状态/结果", "提交人", "手机号", "单位", "角色", "本地音频", "本地视频"],
     ...state.scenes.map((item) => [
       "场景清单",
       item.id,
       item.id,
       item.target,
       item.audioName,
+      "",
       item.tags || "测试数据",
       item.keywords,
       item.devSupport,
       item.status,
       ...submitterValues(item),
+      "",
       "",
     ]),
     ...state.records.map((item) => [
@@ -1627,11 +1698,13 @@ function exportCsv() {
       item.sceneId,
       item.target,
       item.audioName,
+      "",
       item.tags || "测试数据",
       item.keywords,
       item.devSupport,
       item.result,
       ...submitterValues(item),
+      "",
       "",
     ]),
     ...state.audio.map((item) => [
@@ -1640,12 +1713,14 @@ function exportCsv() {
       item.sceneId,
       item.target,
       item.audioName,
+      item.videoName || "",
       item.tags || "测试数据",
       item.keywords,
       item.devSupport,
       item.status,
       ...submitterValues(item),
       item.hasAudioFile ? "已上传" : "未上传",
+      item.hasVideoFile ? "已上传" : "未上传",
     ]),
     ...state.issues.map((item) => [
       "问题需求",
@@ -1653,11 +1728,13 @@ function exportCsv() {
       item.sceneId,
       item.target,
       item.audioName,
+      "",
       item.tags || "测试数据",
       item.problem,
       item.evidence,
       item.status,
       ...submitterValues(item),
+      "",
       "",
     ]),
     ...state.users.map((item) => [
@@ -1665,6 +1742,7 @@ function exportCsv() {
       userKey(item),
       "",
       item.name,
+      "",
       "",
       "",
       item.phone,
@@ -1675,6 +1753,7 @@ function exportCsv() {
       item.unit,
       item.role,
       "",
+      "",
     ]),
     ...Object.entries(state.dictionaries).map(([key, values]) => [
       "字典表",
@@ -1683,7 +1762,9 @@ function exportCsv() {
       dictionaryLabels[key] || key,
       "",
       "",
+      "",
       values.join(";"),
+      "",
       "",
       "",
       "",
@@ -1767,6 +1848,11 @@ function initEvents() {
       audioUploadedAt: previous?.audioUploadedAt || "",
       serverVerifiedAt: previous?.serverVerifiedAt || "",
       serverChecksum: previous?.serverChecksum || "",
+      hasVideoFile: previous?.hasVideoFile || false,
+      videoFileSize: previous?.videoFileSize || "",
+      videoUploadedAt: previous?.videoUploadedAt || "",
+      videoServerVerifiedAt: previous?.videoServerVerifiedAt || "",
+      videoServerChecksum: previous?.videoServerChecksum || "",
     });
     if (data.audioFile?.size) {
       const stored = await saveAudioBlob(audio.id, data.audioFile);
@@ -1777,9 +1863,18 @@ function initEvents() {
       audio.serverChecksum = stored?.checksum || "";
       if (!data.status || data.status === "待上传") audio.status = "已上传";
     }
+    if (data.videoFile?.size) {
+      const storedVideo = await saveVideoBlob(audio.id, data.videoFile);
+      audio.hasVideoFile = true;
+      audio.videoFileSize = storedVideo?.size || data.videoFile.size;
+      audio.videoUploadedAt = new Date().toISOString();
+      audio.videoServerVerifiedAt = new Date().toISOString();
+      audio.videoServerChecksum = storedVideo?.checksum || "";
+    }
     upsertById(state.audio, editingId, audio);
     const uploadedMessage = data.audioFile?.size ? "录音文件已上传服务器并校验通过。" : "";
-    return saveState(`${editingId ? "录音关键词修改已提交并同步。" : "录音关键词已提交并同步。"}${uploadedMessage}`);
+    const videoMessage = data.videoFile?.size ? "视频文件已上传服务器并校验通过。" : "";
+    return saveState(`${editingId ? "录音关键词修改已提交并同步。" : "录音关键词已提交并同步。"}${uploadedMessage}${videoMessage}`);
   });
 
   createForm($("#issueForm"), issueFields, "保存问题需求", (data) => {
@@ -1920,6 +2015,7 @@ function initEvents() {
     if (deleteAudioId && doubleConfirm(`删除录音记录 ${deleteAudioId}？`, "关联的 mp3 文件也会一并删除。")) {
       deleteById(state.audio, deleteAudioId);
       await deleteAudioBlob(deleteAudioId);
+      await deleteVideoBlob(deleteAudioId);
       saveState(`录音记录 ${deleteAudioId} 已删除并同步。`);
     }
   });

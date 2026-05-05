@@ -302,20 +302,20 @@
         <section class="panel">
           <div class="panel-head">
             <div>
-              <h2>录音文件与关键词</h2>
-              <p>每个 .mp3 文件一行，用于大模型转写、分析和训练检索。支持从本地选择录音文件，保存后可在线播放和下载。</p>
+              <h2>录音/视频文件与关键词</h2>
+              <p>每条数据可提交 .mp3 录音和 .mp4 视频，用于大模型转写、分析和训练检索。保存后可在线播放和下载。</p>
             </div>
             <button type="button" id="addAudioBtn">新增录音</button>
           </div>
           <div class="notice-strip">
-            <strong>本地录音上传：</strong>
-            <span>点击“新增录音”，在“上传mp3文件”选择本地 .mp3，提交后文件会上传到服务器侧，并在下方表格中显示播放器和下载入口。</span>
+            <strong>本地文件上传：</strong>
+            <span>点击“新增录音”，在“上传mp3文件”选择本地 .mp3，也可以在“上传mp4视频”选择本地 .mp4。提交后文件会上传到服务器侧，并在下方表格中显示播放和下载入口。</span>
           </div>
           <form id="audioForm" class="entry-form"></form>
           <div class="toolbar">
             <label>
               <span>查询录音</span>
-              <input id="audioSearch" placeholder="输入音频ID、录音文件、场景ID、关键词、状态" />
+              <input id="audioSearch" placeholder="输入音频ID、录音文件、视频文件、场景ID、关键词、状态" />
             </label>
           </div>
           <div class="table-wrap">
@@ -325,6 +325,8 @@
                   <th>音频ID</th>
                   <th>录音文件</th>
                   <th>播放</th>
+                  <th>视频文件</th>
+                  <th>视频播放</th>
                   <th>场景</th>
                   <th>轮次</th>
                   <th>关键词</th>

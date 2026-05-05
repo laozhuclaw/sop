@@ -587,13 +587,20 @@ textarea {
   flex-wrap: wrap;
 }
 
-.audio-cell {
+.audio-cell,
+.video-cell {
   min-width: 260px;
 }
 
-.audio-cell audio {
+.audio-cell audio,
+.video-cell video {
   width: 250px;
   max-width: 100%;
+}
+
+.video-cell video {
+  border-radius: 8px;
+  background: #101828;
 }
 
 .download-link {

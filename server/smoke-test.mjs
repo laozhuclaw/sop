@@ -23,6 +23,14 @@ async function uploadAudio(id, bytes, fileName = "test.mp3") {
   return { status: res.status, body: await res.json() };
 }
 
+async function uploadVideo(id, bytes, fileName = "test.mp4") {
+  const form = new FormData();
+  form.append("file", new Blob([bytes], { type: "video/mp4" }), fileName);
+  form.append("fileName", fileName);
+  const res = await fetch(`${BASE}/api/video/${id}`, { method: "POST", body: form });
+  return { status: res.status, body: await res.json() };
+}
+
 function mergeStates(localData, serverData) {
   const merged = { ...serverData, ...localData };
   for (const key of ["scenes", "records", "audio", "issues"]) {
@@ -125,7 +133,30 @@ await t("audio delete", async () => {
   assert.equal(get.status, 404);
 });
 
-// 8. Concurrent PUTs serialize correctly via the version protocol
+// 8. Video upload + fetch + delete
+await t("video upload roundtrip", async () => {
+  const bytes = new Uint8Array([0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70]);
+  const up = await uploadVideo("AUD-V1", bytes);
+  assert.equal(up.status, 200);
+  assert.equal(up.body.id, "AUD-V1");
+  assert.equal(up.body.size, 8);
+
+  const head = await fetch(`${BASE}/api/video/AUD-V1`, { method: "HEAD" });
+  assert.equal(head.status, 200);
+  assert.equal(Number(head.headers.get("content-length")), 8);
+
+  const get = await fetch(`${BASE}/api/video/AUD-V1`);
+  assert.equal(get.status, 200);
+  const buf = new Uint8Array(await get.arrayBuffer());
+  assert.deepEqual(Array.from(buf), Array.from(bytes));
+
+  const del = await fetch(`${BASE}/api/video/AUD-V1`, { method: "DELETE" });
+  assert.equal(del.status, 200);
+  const after = await fetch(`${BASE}/api/video/AUD-V1`);
+  assert.equal(after.status, 404);
+});
+
+// 9. Concurrent PUTs serialize correctly via the version protocol
 await t("concurrent PUTs do not lose data", async () => {
   await reset();
   // both clients fetch v1
@@ -161,7 +192,7 @@ await t("concurrent PUTs do not lose data", async () => {
   assert.deepEqual(ids, ["S-A", "S-B"]);
 });
 
-// 9. Version endpoint is cheap + accurate
+// 10. Version endpoint is cheap + accurate
 await t("version endpoint", async () => {
   const { body: full } = await api("/api/state");
   const { body: ver } = await api("/api/state/version");
