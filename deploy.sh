@@ -49,6 +49,7 @@ fi
 echo ">> syncing static frontend to $HOST:$TARGET"
 "${RSYNC[@]}" \
   --exclude ".git/" \
+  --exclude ".claude/" \
   --exclude "node_modules/" \
   --exclude "deploy.sh" \
   --exclude "server/data/" \
