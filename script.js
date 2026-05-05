@@ -71,6 +71,22 @@ const dictionaryLabels = {
   sceneTags: "场景标签",
 };
 
+const sampleSubmitter = {
+  tags: "测试数据",
+  submitterName: "邵新",
+  submitterPhone: "待补充",
+  submitterUnit: "苏州移动 网络部",
+  submitterRole: "网络",
+  collectorName: "邵新",
+  collectorPhone: "待补充",
+  collectorUnit: "苏州移动 网络部",
+  collectorRole: "网络",
+  updatedByName: "邵新",
+  updatedByPhone: "待补充",
+  updatedByUnit: "苏州移动 网络部",
+  updatedByRole: "网络",
+};
+
 const initialData = {
   scenes: [
     {
@@ -203,9 +219,198 @@ const initialData = {
     ["下午", "17:00-17:30", "YC-001", "多意图拆分与转人工", "铁通4楼", "产品/开发", "产品 / 开发 / AI-OBS / 记录员", "未开始"],
     ["收口", "17:30-18:00", "-", "当日总结+数据交付确认", "铁通4楼", "邵新+好活", "全体核心人员", "未开始"],
   ],
-  records: [],
-  audio: [],
-  issues: [],
+  records: [
+    {
+      id: "LOG-SAMPLE-001",
+      time: "09:42",
+      sceneId: "BZ-001",
+      round: "1",
+      target: "宽带断网报障识别",
+      description: "用户反馈全屋无法上网，光猫 LOS 红灯闪，十分钟后要开线上会议。",
+      device: "录音卡",
+      audioName: "20260506_BZ001_sample_01.mp3",
+      minutes: "8",
+      userText: "用户原话：家里网突然断了，重启路由器也不行，孩子马上要上网课，我现在很着急。",
+      actual: "一线师傅先确认灯态和地址，判断疑似光路/区域故障；安抚用户并承诺优先派单，同时提醒保留光猫状态。",
+      expected: "训练AI识别断网类型、排障路径、派单边界和安抚话术",
+      result: "部分通过",
+      keywords: "断网;LOS红灯;重启无效;上网课;优先派单",
+      problem: "AI容易直接推荐重启，缺少对 LOS 红灯和紧急场景的优先级判断。",
+      analysis: "需要大模型从用户情绪、灯态、时间压力三个维度判断是否进入紧急保障流程。",
+      devSupport: "增加灯态字段、紧急程度字段、是否区域故障字段，并生成派单摘要。",
+      recorder: "",
+      note: "测试样例：用于说明现场记录怎么写细。",
+      ...sampleSubmitter,
+    },
+    {
+      id: "LOG-SAMPLE-002",
+      time: "14:26",
+      sceneId: "FW-003",
+      round: "1",
+      target: "投诉安抚与升级",
+      description: "用户连续两天催单未解决，表达要投诉到上级。",
+      device: "录音卡",
+      audioName: "20260506_FW003_sample_01.mp3",
+      minutes: "6",
+      userText: "用户原话：昨天说今天给我回电，到现在没人联系，我不要再听解释了，我要投诉。",
+      actual: "先复述用户诉求并道歉，确认历史工单和回访承诺，明确升级到网络部值班经理并给出 2 小时反馈节点。",
+      expected: "支撑AI识别情绪风险、进入纯服务模式、生成升级闭环",
+      result: "通过",
+      keywords: "投诉;没人回电;历史工单;升级;2小时反馈",
+      problem: "需要记录承诺时限和升级对象，否则后续闭环不可追踪。",
+      analysis: "关注 AI 是否停止营销推荐、是否生成可交接的投诉摘要。",
+      devSupport: "沉淀投诉闭环字段：历史承诺、升级对象、反馈时限、下一责任人。",
+      recorder: "",
+      note: "测试样例：投诉场景要把情绪和闭环写清楚。",
+      ...sampleSubmitter,
+    },
+    {
+      id: "LOG-SAMPLE-003",
+      time: "16:18",
+      sceneId: "SX-003",
+      round: "1",
+      target: "FTTR/家庭组网推荐",
+      description: "上门排障发现卧室测速低，用户担心 FTTR 价格和合约限制。",
+      device: "录音卡",
+      audioName: "20260506_SX003_sample_01.mp3",
+      minutes: "9",
+      userText: "用户原话：客厅还行，卧室刷视频老卡。可以改善我愿意听，但别给我办太贵的。",
+      actual: "师傅先完成测速并展示卧室弱覆盖证据，再说明 FTTR/组网方案、费用口径和可选办理路径，最后确认用户愿意留资。",
+      expected: "支撑AI用测速证据推荐FTTR，处理价格和合约合规问题",
+      result: "部分通过",
+      keywords: "卧室弱覆盖;测速证据;FTTR;价格异议;留资",
+      problem: "AI推荐时机要在故障解释完成后，不能一上来销售。",
+      analysis: "需要分析服务完成节点、证据是否充分、价格异议是否被合规处理。",
+      devSupport: "增加随销触发条件、证据截图/测速字段、用户意向等级和下一步动作。",
+      recorder: "",
+      note: "测试样例：随销场景要体现先服务后推荐。",
+      ...sampleSubmitter,
+    },
+  ],
+  audio: [
+    {
+      id: "AUD-SAMPLE-001",
+      audioName: "20260506_BZ001_sample_01.mp3",
+      sceneId: "BZ-001",
+      round: "1",
+      target: "宽带断网报障识别",
+      device: "录音卡",
+      period: "09:30-10:30",
+      minutes: "8",
+      keywords: "断网;LOS红灯;紧急保障;派单",
+      triggerText: "家里网突然断了，重启也没用，孩子马上要上网课。",
+      intent: "宽带故障/紧急保障",
+      speaker: "用户/一线/AI",
+      summary: "用户高紧急度断网报障，关键证据为 LOS 红灯和重启无效，应进入排障+派单路径。",
+      devSupport: "为 AI 训练提供灯态、紧急度、派单边界和安抚话术样本。",
+      action: "上传真实录音后由大模型转写，校验灯态识别和派单摘要是否准确。",
+      status: "待上传",
+      hasAudioFile: false,
+      audioFileSize: "",
+      audioUploadedAt: "",
+      note: "测试样例：录音未上传时也先记录关键词。",
+      ...sampleSubmitter,
+    },
+    {
+      id: "AUD-SAMPLE-002",
+      audioName: "20260506_FW003_sample_01.mp3",
+      sceneId: "FW-003",
+      round: "1",
+      target: "投诉安抚与升级",
+      device: "录音卡",
+      period: "14:10-14:50",
+      minutes: "6",
+      keywords: "投诉;升级;回访承诺;情绪风险",
+      triggerText: "没人联系，我不要再听解释了，我要投诉。",
+      intent: "投诉安抚/升级闭环",
+      speaker: "用户/服务支撑/AI",
+      summary: "用户对历史承诺未兑现不满，AI应进入服务安抚和升级闭环，不应触发营销推荐。",
+      devSupport: "训练投诉摘要、升级对象、承诺反馈时间和责任人字段。",
+      action: "检查 AI 是否生成可复制给后台处理人的一段式交接摘要。",
+      status: "待上传",
+      hasAudioFile: false,
+      audioFileSize: "",
+      audioUploadedAt: "",
+      note: "测试样例：投诉录音重点看情绪和闭环。",
+      ...sampleSubmitter,
+    },
+    {
+      id: "AUD-SAMPLE-003",
+      audioName: "20260506_SX003_sample_01.mp3",
+      sceneId: "SX-003",
+      round: "1",
+      target: "FTTR/家庭组网推荐",
+      device: "录音卡",
+      period: "16:00-16:50",
+      minutes: "9",
+      keywords: "弱覆盖;测速;FTTR;价格异议;留资",
+      triggerText: "卧室刷视频老卡，可以改善我愿意听，但别太贵。",
+      intent: "服务后随销/家庭组网",
+      speaker: "用户/装维/AI",
+      summary: "服务过程中出现明确弱覆盖痛点，推荐需要基于测速证据并处理价格异议。",
+      devSupport: "训练随销触发时机、证据充分性、合规价格说明和意向等级。",
+      action: "后续补充真实 mp3 后，验证 AI 是否能区分服务话术和销售话术。",
+      status: "待上传",
+      hasAudioFile: false,
+      audioFileSize: "",
+      audioUploadedAt: "",
+      note: "测试样例：随销录音要记录触发条件。",
+      ...sampleSubmitter,
+    },
+  ],
+  issues: [
+    {
+      id: "ISS-SAMPLE-001",
+      sceneId: "BZ-001",
+      target: "宽带断网报障识别",
+      type: "规则缺失",
+      problem: "AI 对 LOS 红灯、PON 灯不亮等灯态信息没有稳定追问，容易把光路问题当普通 Wi-Fi 问题处理。",
+      need: "补充灯态追问规则：是否亮灯、是否红灯、是否闪烁、是否重启无效，并映射到故障类型。",
+      evidence: "测试记录 LOG-SAMPLE-001；关键词：LOS红灯、重启无效、上网课。",
+      priority: "P1-本周解决",
+      impact: "是",
+      owner: "网络/开发",
+      status: "待开发",
+      audioName: "20260506_BZ001_sample_01.mp3",
+      acceptance: "AI 能在用户提到断网后主动追问灯态，并在 LOS 红灯时输出派单建议和安抚话术。",
+      note: "测试样例：问题要能转成开发任务。",
+      ...sampleSubmitter,
+    },
+    {
+      id: "ISS-SAMPLE-002",
+      sceneId: "FW-003",
+      target: "投诉安抚与升级",
+      type: "流程不闭环",
+      problem: "投诉场景只生成安抚话术，没有结构化记录升级对象、承诺反馈时限和下一责任人。",
+      need: "增加投诉闭环字段，并在大模型分析结果中强制输出。",
+      evidence: "测试记录 LOG-SAMPLE-002；用户明确要求投诉且提到历史承诺未兑现。",
+      priority: "P0-必须当天解决",
+      impact: "是",
+      owner: "服务/开发",
+      status: "待开发",
+      audioName: "20260506_FW003_sample_01.mp3",
+      acceptance: "AI 输出包含：历史承诺、当前诉求、升级对象、反馈时限、责任人、用户情绪等级。",
+      note: "测试样例：P0 问题要写清验收标准。",
+      ...sampleSubmitter,
+    },
+    {
+      id: "ISS-SAMPLE-003",
+      sceneId: "SX-003",
+      target: "FTTR/家庭组网推荐",
+      type: "埋点缺失",
+      problem: "随销场景没有记录推荐触发点和用户异议，后续无法训练 AI 判断什么时候可以推荐。",
+      need: "增加触发点、证据类型、用户异议、意向等级、下一步动作五个字段。",
+      evidence: "测试记录 LOG-SAMPLE-003；用户提到卧室卡顿且担心价格。",
+      priority: "P1-本周解决",
+      impact: "部分影响",
+      owner: "市场/开发",
+      status: "待确认",
+      audioName: "20260506_SX003_sample_01.mp3",
+      acceptance: "AI 分析结果能区分服务完成前/后推荐，并记录价格异议与留资动作。",
+      note: "测试样例：随销要有证据和合规边界。",
+      ...sampleSubmitter,
+    },
+  ],
   currentUser: structuredClone(EMPTY_USER),
   users: structuredClone(defaultUsers),
   dictionaries: structuredClone(initialDictionaries),
@@ -339,6 +544,13 @@ function normalizeState(saved) {
     ...scene,
     tags: scene.tags || "测试数据",
   }));
+  for (const key of ["records", "audio", "issues"]) {
+    merged[key] = (merged[key] || []).map((item) => ({
+      tags: "测试数据",
+      ...item,
+      tags: item.tags || "测试数据",
+    }));
+  }
   merged.dictionaries = { ...base.dictionaries, ...(saved.dictionaries || {}) };
   merged.dictionaries.sceneTags = uniqueList(["测试数据", ...(merged.dictionaries.sceneTags || [])]);
   merged.currentUser = { ...EMPTY_USER, ...(saved.currentUser || {}) };
@@ -369,13 +581,20 @@ function uniqueList(items) {
 // from this tab are serialized so version numbers stay consistent. If another
 // browser raced us, the server's data is merged with ours (ours wins for
 // entities we both touched) and we PUT again.
-function saveState() {
+function saveState(successMessage = "") {
   writeLocalCurrentUser(state.currentUser);
   renderAll();
   syncFormOptions();
-  saveQueue = saveQueue.then(() => pushStateToServer()).catch((err) => {
-    console.warn("save chain error", err);
-  });
+  showSyncStatus("saving");
+  saveQueue = saveQueue
+    .then(() => pushStateToServer())
+    .then(() => {
+      if (successMessage) showToast(successMessage, "success");
+    })
+    .catch((err) => {
+      console.warn("save chain error", err);
+      if (successMessage) showToast(`保存失败：${err.message}`, "error");
+    });
   return saveQueue;
 }
 
@@ -437,6 +656,33 @@ function showSyncStatus(kind, message) {
   } else {
     pill.textContent = message || kind;
   }
+}
+
+function toastHost() {
+  let host = document.getElementById("toastStack");
+  if (!host) {
+    host = document.createElement("div");
+    host.id = "toastStack";
+    host.className = "toast-stack";
+    host.setAttribute("aria-live", "polite");
+    document.body.append(host);
+  }
+  return host;
+}
+
+function showToast(message, kind = "info") {
+  const toast = document.createElement("div");
+  toast.className = "toast";
+  toast.dataset.kind = kind;
+  toast.textContent = message;
+  toastHost().append(toast);
+  setTimeout(() => toast.remove(), 3200);
+}
+
+function doubleConfirm(title, detail = "") {
+  const first = [title, detail].filter(Boolean).join("\n\n");
+  if (!confirm(first)) return false;
+  return confirm(`再次确认：${title}${detail ? `\n\n${detail}` : ""}`);
 }
 
 async function pollForUpdates() {
@@ -721,6 +967,7 @@ const sceneFields = [
 const recordFields = [
   ["sceneId", "场景ID", "selectScene"],
   ["round", "轮次", "selectRound"],
+  ["tags", "标签", "selectSceneTag"],
   ["time", "时间"],
   ["device", "采集设备", "selectDevice"],
   ["audioName", "录音文件名"],
@@ -737,6 +984,7 @@ const recordFields = [
 const audioFields = [
   ["sceneId", "场景ID", "selectScene"],
   ["round", "轮次", "selectRound"],
+  ["tags", "标签", "selectSceneTag"],
   ["audioName", "录音文件名"],
   ["device", "采集设备", "selectDevice"],
   ["period", "时间段"],
@@ -755,6 +1003,7 @@ const audioFields = [
 const issueFields = [
   ["sceneId", "来源场景ID", "selectScene"],
   ["type", "问题类型", "selectIssueType"],
+  ["tags", "标签", "selectSceneTag"],
   ["priority", "优先级", "selectPriority"],
   ["impact", "是否影响5月6日演练", "selectImpact"],
   ["owner", "负责人"],
@@ -776,13 +1025,31 @@ function createForm(form, fields, submitLabel, onSubmit) {
     <button class="ghost" type="button" data-cancel-edit hidden>取消修改</button>
   `;
   form.append(action);
+  const submitButton = form.querySelector('button[type="submit"]');
+  const resetButton = form.querySelector('button[type="reset"]');
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
-    const data = Object.fromEntries(new FormData(form));
-    await onSubmit(data);
-    form.reset();
-    form.dataset.editingId = "";
-    form.querySelector("[data-cancel-edit]").hidden = true;
+    submitButton.disabled = true;
+    try {
+      const data = Object.fromEntries(new FormData(form));
+      const result = await onSubmit(data);
+      if (result === false) return;
+      form.dataset.skipResetConfirm = "1";
+      form.reset();
+      delete form.dataset.skipResetConfirm;
+      form.dataset.editingId = "";
+      form.querySelector("[data-cancel-edit]").hidden = true;
+    } catch (err) {
+      showToast(`提交失败：${err.message}`, "error");
+    } finally {
+      submitButton.disabled = false;
+    }
+  });
+  resetButton.addEventListener("click", (event) => {
+    if (form.dataset.skipResetConfirm === "1") return;
+    if (!doubleConfirm("清空当前表单？", "已填写但未提交的内容会被清空。")) {
+      event.preventDefault();
+    }
   });
   form.addEventListener("reset", () => {
     form.dataset.editingId = "";
@@ -859,6 +1126,7 @@ function recordFromForm(data) {
     time: data.time || "",
     sceneId: data.sceneId,
     round: data.round || "1",
+    tags: data.tags || scene.tags || "测试数据",
     target: scene.target,
     description: scene.description,
     device: data.device || "录音卡",
@@ -886,6 +1154,7 @@ function audioFromForm(data) {
     audioName: normalizeMp3(data.audioName || uploadedFile?.name || `${scene.id}_${data.round || 1}.mp3`),
     sceneId: data.sceneId,
     round: data.round || "1",
+    tags: data.tags || scene.tags || "测试数据",
     target: scene.target,
     device: data.device || "录音卡",
     period: data.period || "",
@@ -912,6 +1181,7 @@ function issueFromForm(data) {
     id: data.id || `ISS-${String(state.issues.length + 1).padStart(3, "0")}`,
     sceneId: data.sceneId,
     target: scene.target,
+    tags: data.tags || scene.tags || "测试数据",
     type: data.type || "规则缺失",
     problem: data.problem || "",
     need: data.need || "",
@@ -945,6 +1215,7 @@ function renderRecords() {
           <td>${escapeHtml(record.audioName)}</td>
           <td>${record.minutes || ""}</td>
           <td><span class="status ${statusClass(record.result)}">${record.result}</span></td>
+          <td>${escapeHtml(record.tags || "测试数据")}</td>
           <td>${escapeHtml(record.keywords)}</td>
           <td>${escapeHtml(record.devSupport)}</td>
           <td>${submitterText(record)}</td>
@@ -973,6 +1244,7 @@ function renderAudio() {
           <td>${audio.round}</td>
           <td>${escapeHtml(audio.keywords)}</td>
           <td><span class="status ${statusClass(audio.status)}">${audio.status}</span></td>
+          <td>${escapeHtml(audio.tags || "测试数据")}</td>
           <td>${escapeHtml(audio.devSupport)}</td>
           <td>${submitterText(audio)}</td>
           <td class="row-actions">
@@ -1012,6 +1284,7 @@ function renderIssues() {
           <td>${issue.priority}</td>
           <td>${issue.impact}</td>
           <td><span class="status ${statusClass(issue.status)}">${issue.status}</span></td>
+          <td>${escapeHtml(issue.tags || "测试数据")}</td>
           <td>${escapeHtml(issue.audioName)}</td>
           <td>${submitterText(issue)}</td>
           <td class="row-actions">
@@ -1107,15 +1380,15 @@ function deleteById(list, id) {
 function saveSceneFromForm(data) {
   const scene = sceneFromForm(data);
   if (!scene.id) {
-    alert("请先填写场景ID。");
-    return;
+    showToast("请先填写场景ID。", "error");
+    return false;
   }
   addSceneTag(scene.tags);
   const existingId = $("#sceneForm").dataset.editingId;
   const targetId = existingId || scene.id;
   upsertById(state.scenes, targetId, scene);
   syncLinkedSceneData(scene.id);
-  saveState();
+  return saveState(existingId ? "场景修改已提交并同步。" : "新增场景已提交并同步。");
 }
 
 function syncLinkedSceneData(sceneId) {
@@ -1156,7 +1429,7 @@ function saveSceneFromCard(sceneId) {
   scene.updatedByUnit = state.currentUser?.unit || "";
   scene.updatedByRole = state.currentUser?.role || "";
   syncLinkedSceneData(sceneId);
-  saveState();
+  return saveState(`场景 ${sceneId} 修改已提交并同步。`);
 }
 
 function addSceneTag(tag) {
@@ -1172,7 +1445,7 @@ function saveDictionaries() {
       .map((item) => item.trim())
       .filter(Boolean);
   });
-  saveState();
+  return saveState("字典表已提交并同步。");
 }
 
 function syncFormOptions() {
@@ -1188,6 +1461,9 @@ function syncFormOptions() {
     ["sceneForm:type", dict("sceneTypes")],
     ["sceneForm:status", dict("statuses")],
     ["sceneForm:tags", dict("sceneTags")],
+    ["recordForm:tags", dict("sceneTags")],
+    ["audioForm:tags", dict("sceneTags")],
+    ["issueForm:tags", dict("sceneTags")],
     ["issueForm:type", dict("issueTypes")],
     ["audioForm:status", dict("audioStatuses")],
     ["issueForm:status", dict("issueStatuses")],
@@ -1261,7 +1537,7 @@ function exportCsv() {
       item.sceneId,
       item.target,
       item.audioName,
-      "",
+      item.tags || "测试数据",
       item.keywords,
       item.devSupport,
       item.result,
@@ -1274,7 +1550,7 @@ function exportCsv() {
       item.sceneId,
       item.target,
       item.audioName,
-      "",
+      item.tags || "测试数据",
       item.keywords,
       item.devSupport,
       item.status,
@@ -1287,7 +1563,7 @@ function exportCsv() {
       item.sceneId,
       item.target,
       item.audioName,
-      "",
+      item.tags || "测试数据",
       item.problem,
       item.evidence,
       item.status,
@@ -1361,7 +1637,7 @@ function initEvents() {
   });
 
   createForm($("#sceneForm"), sceneFields, "保存场景", (data) => {
-    saveSceneFromForm(data);
+    return saveSceneFromForm(data);
   });
 
   createForm($("#recordForm"), recordFields, "保存现场记录", (data) => {
@@ -1371,7 +1647,7 @@ function initEvents() {
     if (!editingId && !state.audio.some((audio) => audio.audioName === record.audioName)) {
       state.audio.push(audioFromForm({ ...data, audioName: record.audioName, keywords: record.keywords }));
     }
-    saveState();
+    return saveState(editingId ? "现场记录修改已提交并同步。" : "现场记录已提交并同步。");
   });
 
   createForm($("#audioForm"), audioFields, "保存录音关键词", async (data) => {
@@ -1391,16 +1667,16 @@ function initEvents() {
       audio.audioUploadedAt = new Date().toISOString();
     }
     upsertById(state.audio, editingId, audio);
-    saveState();
+    return saveState(editingId ? "录音关键词修改已提交并同步。" : "录音关键词已提交并同步。");
   });
 
   createForm($("#issueForm"), issueFields, "保存问题需求", (data) => {
     const editingId = $("#issueForm").dataset.editingId;
     upsertById(state.issues, editingId, issueFromForm({ ...data, id: editingId }));
-    saveState();
+    return saveState(editingId ? "问题需求修改已提交并同步。" : "问题需求已提交并同步。");
   });
 
-  $("#saveSummaryBtn").addEventListener("click", () => {
+  $("#saveSummaryBtn").addEventListener("click", async () => {
     state.summary = {
       completed: $("#summaryCompleted").value,
       topAudio: $("#summaryTopAudio").value,
@@ -1409,23 +1685,25 @@ function initEvents() {
       rerun: $("#summaryRerun").value,
       next: $("#summaryNext").value,
     };
-    saveState();
+    await saveState("当日复盘摘要已提交并同步。");
   });
 
   $("#exportJsonBtn").addEventListener("click", exportJson);
   $("#exportCsvBtn").addEventListener("click", exportCsv);
-  $("#saveDictionaryBtn").addEventListener("click", saveDictionaries);
+  $("#saveDictionaryBtn").addEventListener("click", () => {
+    saveDictionaries();
+  });
   $("#resetBtn").addEventListener("click", async () => {
-    if (!confirm("确定重置共享数据？这会清空服务器上所有人填写的内容和录音文件。")) return;
-    if (!confirm("再次确认：所有现场记录、录音、问题都会被删除，且不可恢复。继续？")) return;
+    if (!doubleConfirm("重置共享数据？", "这会清空服务器上所有人填写的内容和录音文件，且不可恢复。")) return;
     try {
       const res = await fetch(apiUrl("reset"), { method: "POST" });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       stateVersion = 0;
       await hydrateFromServer();
       showSyncStatus("ok");
+      showToast("共享数据已重置。", "success");
     } catch (err) {
-      alert(`重置失败：${err.message}`);
+      showToast(`重置失败：${err.message}`, "error");
     }
   });
 
@@ -1479,7 +1757,7 @@ function initEvents() {
     const index = event.target.dataset.scheduleIndex;
     if (index !== undefined) {
       state.schedule[Number(index)][7] = event.target.value;
-      saveState();
+      saveState("日程状态已更新并同步。");
     }
   });
 
@@ -1487,9 +1765,9 @@ function initEvents() {
     const sceneId = event.target.dataset.saveScene;
     if (sceneId) saveSceneFromCard(sceneId);
     const deleteSceneId = event.target.dataset.deleteScene;
-    if (deleteSceneId && confirm(`确定删除场景 ${deleteSceneId}？已有现场记录、录音和问题不会自动删除。`)) {
+    if (deleteSceneId && doubleConfirm(`删除场景 ${deleteSceneId}？`, "已有现场记录、录音和问题不会自动删除，请确认是否继续。")) {
       deleteById(state.scenes, deleteSceneId);
-      saveState();
+      saveState(`场景 ${deleteSceneId} 已删除并同步。`);
     }
   });
 
@@ -1509,21 +1787,21 @@ function initEvents() {
     const record = state.records.find((item) => item.id === recordId);
     if (record) updateForm($("#recordForm"), record);
     const deleteRecordId = event.target.dataset.deleteRecord;
-    if (deleteRecordId && confirm(`确定删除现场记录 ${deleteRecordId}？`)) {
+    if (deleteRecordId && doubleConfirm(`删除现场记录 ${deleteRecordId}？`, "删除后需要重新填写或从备份恢复。")) {
       deleteById(state.records, deleteRecordId);
-      saveState();
+      saveState(`现场记录 ${deleteRecordId} 已删除并同步。`);
     }
   });
 
-  $("#audioBody").addEventListener("click", (event) => {
+  $("#audioBody").addEventListener("click", async (event) => {
     const audioId = event.target.dataset.editAudio;
     const audio = state.audio.find((item) => item.id === audioId);
     if (audio) updateForm($("#audioForm"), audio);
     const deleteAudioId = event.target.dataset.deleteAudio;
-    if (deleteAudioId && confirm(`确定删除录音记录 ${deleteAudioId}？`)) {
+    if (deleteAudioId && doubleConfirm(`删除录音记录 ${deleteAudioId}？`, "关联的 mp3 文件也会一并删除。")) {
       deleteById(state.audio, deleteAudioId);
-      deleteAudioBlob(deleteAudioId);
-      saveState();
+      await deleteAudioBlob(deleteAudioId);
+      saveState(`录音记录 ${deleteAudioId} 已删除并同步。`);
     }
   });
 
@@ -1532,9 +1810,9 @@ function initEvents() {
     const issue = state.issues.find((item) => item.id === issueId);
     if (issue) updateForm($("#issueForm"), issue);
     const deleteIssueId = event.target.dataset.deleteIssue;
-    if (deleteIssueId && confirm(`确定删除问题 ${deleteIssueId}？`)) {
+    if (deleteIssueId && doubleConfirm(`删除问题 ${deleteIssueId}？`, "删除后需要重新填写或从备份恢复。")) {
       deleteById(state.issues, deleteIssueId);
-      saveState();
+      saveState(`问题 ${deleteIssueId} 已删除并同步。`);
     }
   });
 
