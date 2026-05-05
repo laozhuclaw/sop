@@ -74,6 +74,44 @@ img {
   max-width: 100%;
 }
 
+.login-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background:
+    linear-gradient(rgba(244, 247, 251, 0.88), rgba(244, 247, 251, 0.94)),
+    url("aicp-console-hero.png") center / cover;
+}
+
+.login-screen[hidden] {
+  display: none;
+}
+
+.login-card {
+  display: grid;
+  gap: 16px;
+  width: min(100%, 460px);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 28px;
+  background: #fff;
+  box-shadow: var(--shadow);
+}
+
+.login-card p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.login-open .sidebar,
+.login-open .app {
+  pointer-events: none;
+  filter: blur(2px);
+}
+
 .sidebar {
   position: fixed;
   inset: 0 auto 0 0;
@@ -200,6 +238,18 @@ h2 {
   gap: 10px;
   flex-wrap: wrap;
   justify-content: flex-end;
+}
+
+.user-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 42px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 9px 12px;
+  color: var(--navy);
+  background: #fff;
+  font-weight: 900;
 }
 
 .view {

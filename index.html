@@ -11,6 +11,27 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
+    <section id="loginScreen" class="login-screen" aria-label="人员登录">
+      <form id="loginForm" class="login-card">
+        <p class="eyebrow">AICP 数据收集控制台</p>
+        <h1>人员登录</h1>
+        <p>请填写姓名、手机号和单位。后续新增或修改的数据都会记录当前填写人员，便于追溯和训练数据整理。</p>
+        <label>
+          <span>人名</span>
+          <input name="name" autocomplete="name" required />
+        </label>
+        <label>
+          <span>手机号</span>
+          <input name="phone" inputmode="tel" autocomplete="tel" pattern="^1[3-9][0-9]{9}$" required />
+        </label>
+        <label>
+          <span>单位</span>
+          <input name="unit" autocomplete="organization" required />
+        </label>
+        <button type="submit">进入控制台</button>
+      </form>
+    </section>
+
     <aside class="sidebar" aria-label="AICP SOP 导航">
       <a class="brand" href="#dashboard" aria-label="AICP SOP 首页">
         <span class="brand-mark">AI</span>
@@ -44,6 +65,8 @@
           <h1>AICP 数据收集控制台</h1>
         </div>
         <div class="top-actions">
+          <div class="user-pill" id="currentUserPill">未登录</div>
+          <button id="switchUserBtn" class="ghost" type="button">切换人员</button>
           <button id="exportJsonBtn" type="button">导出 JSON</button>
           <button id="exportCsvBtn" type="button">导出 CSV</button>
           <button id="resetBtn" class="ghost danger" type="button">重置数据</button>
@@ -195,6 +218,7 @@
                   <th>结果</th>
                   <th>关键词</th>
                   <th>开发支撑点</th>
+                  <th>填写人</th>
                   <th>操作</th>
                 </tr>
               </thead>
@@ -231,6 +255,7 @@
                   <th>关键词</th>
                   <th>分析状态</th>
                   <th>开发支撑点</th>
+                  <th>填写人</th>
                   <th>操作</th>
                 </tr>
               </thead>
@@ -267,6 +292,7 @@
                   <th>是否影响演练</th>
                   <th>状态</th>
                   <th>关联录音</th>
+                  <th>填写人</th>
                   <th>操作</th>
                 </tr>
               </thead>

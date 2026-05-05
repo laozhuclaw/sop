@@ -1,4 +1,10 @@
 const STORAGE_KEY = "aicp-sop-training-v1";
+const EMPTY_USER = {
+  name: "",
+  phone: "",
+  unit: "",
+  loginAt: "",
+};
 
 const initialDictionaries = {
   sceneTypes: ["基本保障", "服务", "随销", "异常升级"],
@@ -161,6 +167,8 @@ const initialData = {
   records: [],
   audio: [],
   issues: [],
+  currentUser: structuredClone(EMPTY_USER),
+  users: [],
   dictionaries: structuredClone(initialDictionaries),
   summary: {
     completed: "",
@@ -195,6 +203,8 @@ function normalizeState(saved) {
   const base = structuredClone(initialData);
   const merged = { ...base, ...saved };
   merged.dictionaries = { ...base.dictionaries, ...(saved.dictionaries || {}) };
+  merged.currentUser = { ...EMPTY_USER, ...(saved.currentUser || {}) };
+  merged.users = saved.users || [];
   return merged;
 }
 
@@ -227,6 +237,26 @@ function matchesQuery(item, query) {
   return JSON.stringify(item).toLowerCase().includes(text);
 }
 
+function hasUser() {
+  return Boolean(state.currentUser?.name && state.currentUser?.phone && state.currentUser?.unit);
+}
+
+function currentUserFields() {
+  return {
+    collectorName: state.currentUser?.name || "",
+    collectorPhone: state.currentUser?.phone || "",
+    collectorUnit: state.currentUser?.unit || "",
+  };
+}
+
+function renderLoginState() {
+  document.body.classList.toggle("login-open", !hasUser());
+  $("#loginScreen").hidden = hasUser();
+  $("#currentUserPill").textContent = hasUser()
+    ? `${state.currentUser.name}｜${state.currentUser.unit}`
+    : "未登录";
+}
+
 function statusClass(value) {
   if (["通过", "已分析", "已关闭"].includes(value)) return "done";
   if (["需复盘", "部分通过", "待上传", "待开发", "待确认"].includes(value)) return "warn";
@@ -250,6 +280,7 @@ function renderAll() {
   renderIssues();
   renderDictionaries();
   fillSummary();
+  renderLoginState();
 }
 
 function renderKpis() {
@@ -458,6 +489,9 @@ function sceneFromForm(data) {
     owner: data.owner || "",
     status: data.status || dict("statuses")[0] || "",
     note: data.note || "",
+    updatedByName: state.currentUser?.name || "",
+    updatedByPhone: state.currentUser?.phone || "",
+    updatedByUnit: state.currentUser?.unit || "",
   };
 }
 
@@ -482,6 +516,7 @@ function recordFromForm(data) {
     analysis: data.analysis || "",
     devSupport: data.devSupport || scene.devSupport,
     recorder: "",
+    ...currentUserFields(),
     note: "",
   };
 }
@@ -505,6 +540,7 @@ function audioFromForm(data) {
     devSupport: data.devSupport || scene.devSupport,
     action: data.action || "",
     status: data.status || "待上传",
+    ...currentUserFields(),
     note: "",
   };
 }
@@ -525,6 +561,7 @@ function issueFromForm(data) {
     status: data.status || "待开发",
     audioName: normalizeMp3(data.audioName || ""),
     acceptance: data.acceptance || "",
+    ...currentUserFields(),
     note: "",
   };
 }
@@ -549,6 +586,7 @@ function renderRecords() {
           <td><span class="status ${statusClass(record.result)}">${record.result}</span></td>
           <td>${escapeHtml(record.keywords)}</td>
           <td>${escapeHtml(record.devSupport)}</td>
+          <td>${escapeHtml(record.collectorName || "")}<br />${escapeHtml(record.collectorUnit || "")}</td>
           <td class="row-actions">
             <button class="small ghost" type="button" data-edit-record="${record.id}">修改</button>
             <button class="small ghost danger" type="button" data-delete-record="${record.id}">删除</button>
@@ -572,6 +610,7 @@ function renderAudio() {
           <td>${escapeHtml(audio.keywords)}</td>
           <td><span class="status ${statusClass(audio.status)}">${audio.status}</span></td>
           <td>${escapeHtml(audio.devSupport)}</td>
+          <td>${escapeHtml(audio.collectorName || "")}<br />${escapeHtml(audio.collectorUnit || "")}</td>
           <td class="row-actions">
             <button class="small ghost" type="button" data-edit-audio="${audio.id}">修改</button>
             <button class="small ghost danger" type="button" data-delete-audio="${audio.id}">删除</button>
@@ -595,6 +634,7 @@ function renderIssues() {
           <td>${issue.impact}</td>
           <td><span class="status ${statusClass(issue.status)}">${issue.status}</span></td>
           <td>${escapeHtml(issue.audioName)}</td>
+          <td>${escapeHtml(issue.collectorName || "")}<br />${escapeHtml(issue.collectorUnit || "")}</td>
           <td class="row-actions">
             <button class="small ghost" type="button" data-edit-issue="${issue.id}">修改</button>
             <button class="small ghost danger" type="button" data-delete-issue="${issue.id}">删除</button>
@@ -683,6 +723,9 @@ function saveSceneFromCard(sceneId) {
     const key = field.dataset.sceneField;
     scene[key] = key === "audioName" ? normalizeMp3(field.value) : field.value;
   });
+  scene.updatedByName = state.currentUser?.name || "";
+  scene.updatedByPhone = state.currentUser?.phone || "";
+  scene.updatedByUnit = state.currentUser?.unit || "";
   syncLinkedSceneData(sceneId);
   saveState();
 }
@@ -760,7 +803,7 @@ function exportJson() {
 
 function exportCsv() {
   const rows = [
-    ["类型", "ID", "场景ID", "目标场景", "录音文件", "关键词", "开发支撑点", "状态/结果"],
+    ["类型", "ID", "场景ID", "目标场景", "录音文件", "关键词", "开发支撑点", "状态/结果", "填写人", "手机号", "单位"],
     ...state.scenes.map((item) => [
       "场景清单",
       item.id,
@@ -770,6 +813,9 @@ function exportCsv() {
       item.keywords,
       item.devSupport,
       item.status,
+      item.updatedByName || "",
+      item.updatedByPhone || "",
+      item.updatedByUnit || "",
     ]),
     ...state.records.map((item) => [
       "现场记录",
@@ -780,6 +826,9 @@ function exportCsv() {
       item.keywords,
       item.devSupport,
       item.result,
+      item.collectorName || "",
+      item.collectorPhone || "",
+      item.collectorUnit || "",
     ]),
     ...state.audio.map((item) => [
       "录音关键词",
@@ -790,6 +839,9 @@ function exportCsv() {
       item.keywords,
       item.devSupport,
       item.status,
+      item.collectorName || "",
+      item.collectorPhone || "",
+      item.collectorUnit || "",
     ]),
     ...state.issues.map((item) => [
       "问题需求",
@@ -800,6 +852,9 @@ function exportCsv() {
       item.problem,
       item.evidence,
       item.status,
+      item.collectorName || "",
+      item.collectorPhone || "",
+      item.collectorUnit || "",
     ]),
     ...Object.entries(state.dictionaries).map(([key, values]) => [
       "字典表",
@@ -808,6 +863,9 @@ function exportCsv() {
       dictionaryLabels[key] || key,
       "",
       values.join(";"),
+      "",
+      "",
+      "",
       "",
       "",
     ]),
@@ -833,6 +891,33 @@ function initNav() {
 }
 
 function initEvents() {
+  $("#loginForm").addEventListener("submit", (event) => {
+    event.preventDefault();
+    const data = Object.fromEntries(new FormData(event.currentTarget));
+    state.currentUser = {
+      name: String(data.name || "").trim(),
+      phone: String(data.phone || "").trim(),
+      unit: String(data.unit || "").trim(),
+      loginAt: new Date().toISOString(),
+    };
+    const existing = state.users.find((user) => user.phone === state.currentUser.phone);
+    if (existing) {
+      Object.assign(existing, state.currentUser);
+    } else {
+      state.users.push({ ...state.currentUser });
+    }
+    saveState();
+  });
+
+  $("#switchUserBtn").addEventListener("click", () => {
+    const form = $("#loginForm");
+    form.elements.name.value = state.currentUser?.name || "";
+    form.elements.phone.value = state.currentUser?.phone || "";
+    form.elements.unit.value = state.currentUser?.unit || "";
+    document.body.classList.add("login-open");
+    $("#loginScreen").hidden = false;
+  });
+
   createForm($("#sceneForm"), sceneFields, "保存场景", (data) => {
     saveSceneFromForm(data);
   });
