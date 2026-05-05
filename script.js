@@ -1,0 +1,958 @@
+const STORAGE_KEY = "aicp-sop-training-v1";
+
+const initialDictionaries = {
+  sceneTypes: ["基本保障", "服务", "随销", "异常升级"],
+  statuses: ["未开始", "演练中", "通过", "需复盘", "阻塞"],
+  results: ["通过", "部分通过", "未通过", "待确认"],
+  rounds: ["1", "2", "3"],
+  devices: ["录音卡", "AI耳机", "手机录音", "会议录音", "其他"],
+  audioStatuses: ["待上传", "已上传", "已转写", "已分析", "需重录", "不可用"],
+  issueTypes: ["知识缺失", "规则缺失", "话术不准", "接口/数据", "流程不闭环", "权限/合规", "体验问题", "埋点缺失"],
+  priorities: ["P0-必须当天解决", "P1-本周解决", "P2-可排期", "P3-观察"],
+  impact: ["是", "否", "部分影响"],
+  issueStatuses: ["待确认", "待开发", "开发中", "待验收", "已关闭", "暂缓"],
+};
+
+const dictionaryLabels = {
+  sceneTypes: "场景类型",
+  statuses: "通用状态",
+  results: "演练结果",
+  rounds: "轮次",
+  devices: "采集设备",
+  audioStatuses: "录音分析状态",
+  issueTypes: "问题类型",
+  priorities: "优先级",
+  impact: "是否影响演练",
+  issueStatuses: "问题状态",
+};
+
+const initialData = {
+  scenes: [
+    {
+      id: "BZ-001",
+      type: "基本保障",
+      target: "宽带断网报障识别",
+      description: "家庭用户反馈宽带无法上网，已重启仍无效，并表达马上要开会的紧急诉求。",
+      audioName: "20260506_BZ001_01.mp3",
+      keywords: "断网;重启无效;开会;光猫;区域告警",
+      dataNeeded: "用户原话、灯态、地址/账号、排障动作、是否派单、承诺时限",
+      devSupport: "训练AI识别断网类型、排障路径、派单边界和安抚话术",
+      owner: "邵新",
+      status: "未开始",
+      note: "",
+    },
+    {
+      id: "BZ-002",
+      type: "基本保障",
+      target: "装机进度查询",
+      description: "新装用户咨询什么时候上门安装，关注预约时间和是否能改约。",
+      audioName: "20260506_BZ002_01.mp3",
+      keywords: "新装;预约;改约;端口;排班",
+      dataNeeded: "订单状态、预约时间、卡点原因、责任人、用户确认结果",
+      devSupport: "支撑AI查询装机状态、解释卡点、输出改约/升级路径",
+      owner: "邵新",
+      status: "未开始",
+      note: "",
+    },
+    {
+      id: "BZ-003",
+      type: "基本保障",
+      target: "电视卡顿/IPTV故障",
+      description: "中年家庭反馈电视卡顿、黑屏或动画片转圈，需要排查IPTV和带宽问题。",
+      audioName: "20260506_BZ003_01.mp3",
+      keywords: "电视卡顿;黑屏;IPTV;动画片;带宽",
+      dataNeeded: "机顶盒状态、测速结果、电视使用场景、处理动作、是否推荐升级",
+      devSupport: "支撑AI识别电视/IPTV故障路径及电视周边产品协同推荐",
+      owner: "邵新",
+      status: "未开始",
+      note: "",
+    },
+    {
+      id: "FW-001",
+      type: "服务",
+      target: "账单费用解释",
+      description: "老用户质疑本月费用变高，怀疑乱扣费，需要解释账单差异。",
+      audioName: "20260506_FW001_01.mp3",
+      keywords: "费用变高;乱扣费;账单;优惠到期;增值业务",
+      dataNeeded: "账期、费用差异项、解释口径、用户是否接受、后续动作",
+      devSupport: "支撑AI做费用拆解、优惠到期解释和申诉/退订建议",
+      owner: "小罗",
+      status: "未开始",
+      note: "",
+    },
+    {
+      id: "FW-002",
+      type: "服务",
+      target: "套餐变更咨询",
+      description: "用户希望降档或更换套餐，需要查询合约、用量并给出可办理方案。",
+      audioName: "20260506_FW002_01.mp3",
+      keywords: "套餐太贵;降档;合约;用量;生效时间",
+      dataNeeded: "当前套餐、合约限制、用量、推荐方案、生效时间、用户确认结果",
+      devSupport: "支撑AI推荐套餐方案并说明合约/生效/风险边界",
+      owner: "小罗",
+      status: "未开始",
+      note: "",
+    },
+    {
+      id: "FW-003",
+      type: "服务",
+      target: "投诉安抚与升级",
+      description: "用户对处理不满要求投诉，情绪较激动，需要安抚并明确升级反馈时间。",
+      audioName: "20260506_FW003_01.mp3",
+      keywords: "投诉;没人处理;等待;升级;反馈时限",
+      dataNeeded: "用户情绪、历史工单、安抚话术、升级对象、反馈节点",
+      devSupport: "支撑AI识别情绪风险、进入纯服务模式、生成升级闭环",
+      owner: "姚炳阳",
+      status: "未开始",
+      note: "情绪触发重点样本",
+    },
+    {
+      id: "SX-001",
+      type: "随销",
+      target: "故障后提速/组网机会识别",
+      description: "故障处理后，用户提到孩子上网课、打游戏卡顿，存在提速或家庭组网机会。",
+      audioName: "20260506_SX001_01.mp3",
+      keywords: "卡顿;上网课;打游戏;多设备;组网",
+      dataNeeded: "当前套餐、设备数、户型、痛点、推荐产品、用户意向",
+      devSupport: "支撑AI先服务后推荐、识别商机、控制推荐时机和话术",
+      owner: "杨浩",
+      status: "未开始",
+      note: "",
+    },
+    {
+      id: "SX-003",
+      type: "随销",
+      target: "FTTR/家庭组网推荐",
+      description: "上门服务中发现卧室信号弱，用户愿意改善但担心价格。",
+      audioName: "20260506_SX003_01.mp3",
+      keywords: "卧室信号弱;路由器;FTTR;价格;合约",
+      dataNeeded: "测速结果、房间布局、报价、异议、是否留资/成交",
+      devSupport: "支撑AI用测速证据推荐FTTR，处理价格和合约合规问题",
+      owner: "杨浩",
+      status: "未开始",
+      note: "报价和合规重点",
+    },
+    {
+      id: "YC-001",
+      type: "异常升级",
+      target: "多意图拆分与转人工",
+      description: "用户一次说网络慢、账单不对、优惠没给，AI需要拆分并判断处理顺序。",
+      audioName: "20260506_YC001_01.mp3",
+      keywords: "网慢;账单不对;优惠;多个问题;转人工",
+      dataNeeded: "用户多诉求原话、AI拆分结果、追问、转人工原因",
+      devSupport: "支撑AI多意图识别、上下文保留和人工转接摘要",
+      owner: "产品/开发",
+      status: "未开始",
+      note: "",
+    },
+  ],
+  schedule: [
+    ["上午", "09:00-09:30", "-", "开场+人员到位+设备调试+流程讲解", "铁通4楼", "邵新", "全体到场", "未开始"],
+    ["上午", "09:30-10:30", "BZ-001", "宽带断网报障识别", "铁通4楼", "邵新", "M-A / 用户1 / AI-EAR / 记录员", "未开始"],
+    ["上午", "10:40-11:30", "BZ-002", "装机进度查询", "铁通4楼", "邵新", "M-B / 用户2 / AI-EAR / 记录员", "未开始"],
+    ["上午", "11:30-12:20", "BZ-003", "电视卡顿/IPTV故障", "铁通4楼", "邵新", "M-A / 用户2 / AI-EAR / 记录员", "未开始"],
+    ["下午", "13:30-14:10", "FW-001", "账单费用解释", "铁通4楼", "小罗", "服务支撑 / 用户 / AI-EAR / 记录员", "未开始"],
+    ["下午", "14:10-14:50", "FW-003", "投诉安抚与升级", "铁通4楼", "姚炳阳", "服务支撑 / 投诉客户 / AI-EAR / 记录员", "未开始"],
+    ["下午", "15:00-15:50", "SX-001", "故障后提速/组网机会识别", "333/铁通待定", "杨浩", "一线 / 用户 / AI-EAR / 记录员", "未开始"],
+    ["下午", "16:00-16:50", "SX-003", "FTTR/家庭组网推荐", "333/铁通待定", "杨浩", "培推师 / 用户 / AI-EAR / 记录员", "未开始"],
+    ["下午", "17:00-17:30", "YC-001", "多意图拆分与转人工", "铁通4楼", "产品/开发", "产品 / 开发 / AI-OBS / 记录员", "未开始"],
+    ["收口", "17:30-18:00", "-", "当日总结+数据交付确认", "铁通4楼", "邵新+好活", "全体核心人员", "未开始"],
+  ],
+  records: [],
+  audio: [],
+  issues: [],
+  dictionaries: structuredClone(initialDictionaries),
+  summary: {
+    completed: "",
+    topAudio: "",
+    aiGap: "",
+    blocker: "",
+    rerun: "",
+    next: "",
+  },
+};
+
+let state = loadState();
+const filters = {
+  schedule: "",
+  scenes: "",
+  records: "",
+  audio: "",
+  issues: "",
+};
+
+function loadState() {
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (!saved) return structuredClone(initialData);
+  try {
+    return normalizeState(JSON.parse(saved));
+  } catch {
+    return structuredClone(initialData);
+  }
+}
+
+function normalizeState(saved) {
+  const base = structuredClone(initialData);
+  const merged = { ...base, ...saved };
+  merged.dictionaries = { ...base.dictionaries, ...(saved.dictionaries || {}) };
+  return merged;
+}
+
+function saveState() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  renderAll();
+  syncFormOptions();
+}
+
+const $ = (selector) => document.querySelector(selector);
+const $$ = (selector) => Array.from(document.querySelectorAll(selector));
+
+function getScene(id) {
+  return state.scenes.find((scene) => scene.id === id) || state.scenes[0] || {
+    id: "",
+    target: "",
+    description: "",
+    keywords: "",
+    devSupport: "",
+  };
+}
+
+function dict(key) {
+  return state.dictionaries?.[key] || initialDictionaries[key] || [];
+}
+
+function matchesQuery(item, query) {
+  const text = String(query || "").trim().toLowerCase();
+  if (!text) return true;
+  return JSON.stringify(item).toLowerCase().includes(text);
+}
+
+function statusClass(value) {
+  if (["通过", "已分析", "已关闭"].includes(value)) return "done";
+  if (["需复盘", "部分通过", "待上传", "待开发", "待确认"].includes(value)) return "warn";
+  return "";
+}
+
+function escapeHtml(value = "") {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
+}
+
+function renderAll() {
+  renderKpis();
+  renderSchedule();
+  renderScenes();
+  renderRecords();
+  renderAudio();
+  renderIssues();
+  renderDictionaries();
+  fillSummary();
+}
+
+function renderKpis() {
+  $("#kpiScenes").textContent = state.scenes.length;
+  $("#kpiRecords").textContent = state.records.length;
+  $("#kpiAudio").textContent = state.audio.filter((item) => item.audioName).length;
+  $("#kpiMinutes").textContent = state.audio.reduce((sum, item) => sum + Number(item.minutes || 0), 0);
+  $("#kpiOpenIssues").textContent = state.issues.filter((issue) => !["已关闭", "暂缓"].includes(issue.status)).length;
+}
+
+function renderSchedule() {
+  $("#scheduleBody").innerHTML = state.schedule
+    .map((row, index) => ({ row, index }))
+    .filter(({ row }) => matchesQuery(row, filters.schedule))
+    .map(
+      ({ row, index }) => `
+        <tr>
+          ${row
+            .map((cell, cellIndex) => {
+              if (cellIndex === 7) {
+                return `<td><select data-schedule-index="${index}">${dict("statuses")
+                  .map((option) => `<option ${option === cell ? "selected" : ""}>${option}</option>`)
+                  .join("")}</select></td>`;
+              }
+              return `<td>${escapeHtml(cell)}</td>`;
+            })
+            .join("")}
+        </tr>
+      `,
+    )
+    .join("");
+}
+
+function renderScenes() {
+  $("#sceneGrid").innerHTML = state.scenes
+    .filter((scene) => matchesQuery(scene, filters.scenes))
+    .map(
+      (scene) => `
+        <article class="scene-card" data-scene-card="${scene.id}">
+          <div class="scene-meta">
+            <span class="tag">${scene.id}</span>
+            <label>
+              <span>场景类型</span>
+              <select data-scene-field="type">${dict("sceneTypes")
+                .map((option) => `<option ${option === scene.type ? "selected" : ""}>${option}</option>`)
+                .join("")}</select>
+            </label>
+            <label>
+              <span>状态</span>
+              <select data-scene-field="status">${dict("statuses")
+                .map((option) => `<option ${option === scene.status ? "selected" : ""}>${option}</option>`)
+                .join("")}</select>
+            </label>
+          </div>
+          <label><span>目标场景</span><input data-scene-field="target" value="${attr(scene.target)}" /></label>
+          <label><span>场景描述</span><textarea data-scene-field="description">${escapeHtml(scene.description)}</textarea></label>
+          <label><span>录音文件</span><input data-scene-field="audioName" value="${attr(scene.audioName)}" /></label>
+          <label><span>关键词/触发词</span><textarea data-scene-field="keywords">${escapeHtml(scene.keywords)}</textarea></label>
+          <label><span>需采集数据</span><textarea data-scene-field="dataNeeded">${escapeHtml(scene.dataNeeded)}</textarea></label>
+          <label><span>开发数据支撑点</span><textarea data-scene-field="devSupport">${escapeHtml(scene.devSupport)}</textarea></label>
+          <div class="scene-row">
+            <label><span>负责人</span><input data-scene-field="owner" value="${attr(scene.owner)}" /></label>
+            <label><span>备注</span><input data-scene-field="note" value="${attr(scene.note)}" /></label>
+          </div>
+          <div class="form-actions">
+            <button type="button" data-save-scene="${scene.id}">保存场景修改</button>
+            <button class="ghost danger" type="button" data-delete-scene="${scene.id}">删除场景</button>
+          </div>
+        </article>
+      `,
+    )
+    .join("");
+}
+
+function attr(value = "") {
+  return escapeHtml(value).replaceAll("'", "&#39;");
+}
+
+const sceneFields = [
+  ["id", "场景ID"],
+  ["type", "场景类型", "selectSceneType"],
+  ["target", "目标场景"],
+  ["status", "状态", "selectStatus"],
+  ["audioName", "录音文件名"],
+  ["owner", "负责人"],
+  ["description", "场景描述", "textarea", "field-wide"],
+  ["keywords", "关键词/触发词", "textarea", "field-wide"],
+  ["dataNeeded", "需采集数据", "textarea", "field-wide"],
+  ["devSupport", "开发数据支撑点", "textarea", "field-wide"],
+  ["note", "备注", "textarea", "field-wide"],
+];
+
+const recordFields = [
+  ["sceneId", "场景ID", "selectScene"],
+  ["round", "轮次", "selectRound"],
+  ["time", "时间"],
+  ["device", "采集设备", "selectDevice"],
+  ["audioName", "录音文件名"],
+  ["minutes", "录音时长(分)", "number"],
+  ["userText", "用户原话/摘要", "textarea", "field-wide"],
+  ["actual", "实际处理/回复", "textarea", "field-wide"],
+  ["result", "演练结果", "selectResult"],
+  ["keywords", "关键词/触发词", "textarea", "field-wide"],
+  ["problem", "现场问题", "textarea", "field-wide"],
+  ["analysis", "大模型待分析点", "textarea", "field-wide"],
+  ["devSupport", "开发数据支撑点", "textarea", "field-full"],
+];
+
+const audioFields = [
+  ["sceneId", "场景ID", "selectScene"],
+  ["round", "轮次", "selectRound"],
+  ["audioName", "录音文件名"],
+  ["device", "采集设备", "selectDevice"],
+  ["period", "时间段"],
+  ["minutes", "录音时长(分)", "number"],
+  ["keywords", "关键词", "textarea", "field-wide"],
+  ["triggerText", "触发词/原话片段", "textarea", "field-wide"],
+  ["intent", "意图标签"],
+  ["speaker", "语者"],
+  ["summary", "大模型分析摘要", "textarea", "field-wide"],
+  ["devSupport", "开发数据支撑点", "textarea", "field-wide"],
+  ["action", "建议动作", "textarea", "field-wide"],
+  ["status", "状态", "selectAudioStatus"],
+];
+
+const issueFields = [
+  ["sceneId", "来源场景ID", "selectScene"],
+  ["type", "问题类型", "selectIssueType"],
+  ["priority", "优先级", "selectPriority"],
+  ["impact", "是否影响5月6日演练", "selectImpact"],
+  ["owner", "负责人"],
+  ["status", "状态", "selectIssueStatus"],
+  ["audioName", "关联录音文件"],
+  ["problem", "现场问题", "textarea", "field-wide"],
+  ["need", "需要AI/系统补什么", "textarea", "field-wide"],
+  ["evidence", "数据证据/支撑点", "textarea", "field-wide"],
+  ["acceptance", "验收标准", "textarea", "field-wide"],
+];
+
+function createForm(form, fields, submitLabel, onSubmit) {
+  form.innerHTML = fields.map(([name, label, type, className]) => fieldMarkup(name, label, type, className)).join("");
+  const action = document.createElement("div");
+  action.className = "form-actions";
+  action.innerHTML = `
+    <button type="submit">${submitLabel}</button>
+    <button class="ghost" type="reset">清空</button>
+    <button class="ghost" type="button" data-cancel-edit hidden>取消修改</button>
+  `;
+  form.append(action);
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const data = Object.fromEntries(new FormData(form));
+    onSubmit(data);
+    form.reset();
+    form.dataset.editingId = "";
+    form.querySelector("[data-cancel-edit]").hidden = true;
+  });
+  form.addEventListener("reset", () => {
+    form.dataset.editingId = "";
+    form.querySelector("[data-cancel-edit]").hidden = true;
+  });
+  form.querySelector("[data-cancel-edit]").addEventListener("click", () => {
+    form.reset();
+  });
+}
+
+function fieldMarkup(name, label, type = "text", className = "") {
+  if (type === "textarea") {
+    return `<label class="${className}"><span>${label}</span><textarea name="${name}"></textarea></label>`;
+  }
+  if (type === "number") {
+    return `<label class="${className}"><span>${label}</span><input name="${name}" type="number" min="0" step="1" /></label>`;
+  }
+  const selectOptions = {
+    selectScene: state.scenes.map((scene) => scene.id),
+    selectSceneType: dict("sceneTypes"),
+    selectStatus: dict("statuses"),
+    selectRound: dict("rounds"),
+    selectDevice: dict("devices"),
+    selectResult: dict("results"),
+    selectAudioStatus: dict("audioStatuses"),
+    selectIssueType: dict("issueTypes"),
+    selectPriority: dict("priorities"),
+    selectImpact: dict("impact"),
+    selectIssueStatus: dict("issueStatuses"),
+  }[type];
+  if (selectOptions) {
+    return `<label class="${className}"><span>${label}</span><select name="${name}">${selectOptions
+      .map((option) => `<option>${option}</option>`)
+      .join("")}</select></label>`;
+  }
+  return `<label class="${className}"><span>${label}</span><input name="${name}" /></label>`;
+}
+
+function sceneFromForm(data) {
+  const id = String(data.id || "").trim().toUpperCase();
+  return {
+    id,
+    type: data.type || dict("sceneTypes")[0] || "",
+    target: data.target || "",
+    description: data.description || "",
+    audioName: normalizeMp3(data.audioName || `${id}_01.mp3`),
+    keywords: data.keywords || "",
+    dataNeeded: data.dataNeeded || "",
+    devSupport: data.devSupport || "",
+    owner: data.owner || "",
+    status: data.status || dict("statuses")[0] || "",
+    note: data.note || "",
+  };
+}
+
+function recordFromForm(data) {
+  const scene = getScene(data.sceneId);
+  return {
+    id: data.id || `LOG-${String(state.records.length + 1).padStart(3, "0")}`,
+    time: data.time || "",
+    sceneId: data.sceneId,
+    round: data.round || "1",
+    target: scene.target,
+    description: scene.description,
+    device: data.device || "录音卡",
+    audioName: normalizeMp3(data.audioName || `${scene.id}_${data.round || 1}.mp3`),
+    minutes: data.minutes || "",
+    userText: data.userText || "",
+    actual: data.actual || "",
+    expected: scene.devSupport,
+    result: data.result || "待确认",
+    keywords: data.keywords || scene.keywords,
+    problem: data.problem || "",
+    analysis: data.analysis || "",
+    devSupport: data.devSupport || scene.devSupport,
+    recorder: "",
+    note: "",
+  };
+}
+
+function audioFromForm(data) {
+  const scene = getScene(data.sceneId);
+  return {
+    id: data.id || `AUD-${String(state.audio.length + 1).padStart(3, "0")}`,
+    audioName: normalizeMp3(data.audioName || `${scene.id}_${data.round || 1}.mp3`),
+    sceneId: data.sceneId,
+    round: data.round || "1",
+    target: scene.target,
+    device: data.device || "录音卡",
+    period: data.period || "",
+    minutes: data.minutes || "",
+    keywords: data.keywords || scene.keywords,
+    triggerText: data.triggerText || "",
+    intent: data.intent || "",
+    speaker: data.speaker || "用户/一线/AI",
+    summary: data.summary || "",
+    devSupport: data.devSupport || scene.devSupport,
+    action: data.action || "",
+    status: data.status || "待上传",
+    note: "",
+  };
+}
+
+function issueFromForm(data) {
+  const scene = getScene(data.sceneId);
+  return {
+    id: data.id || `ISS-${String(state.issues.length + 1).padStart(3, "0")}`,
+    sceneId: data.sceneId,
+    target: scene.target,
+    type: data.type || "规则缺失",
+    problem: data.problem || "",
+    need: data.need || "",
+    evidence: data.evidence || "",
+    priority: data.priority || "P1-本周解决",
+    impact: data.impact || "否",
+    owner: data.owner || "",
+    status: data.status || "待开发",
+    audioName: normalizeMp3(data.audioName || ""),
+    acceptance: data.acceptance || "",
+    note: "",
+  };
+}
+
+function normalizeMp3(fileName) {
+  const value = String(fileName || "").trim();
+  if (!value) return "";
+  return value.replace(/\.(wav|m4a|mp4|aac)$/i, ".mp3").replace(/\.mp3$/i, ".mp3");
+}
+
+function renderRecords() {
+  $("#recordsBody").innerHTML = state.records
+    .filter((record) => matchesQuery(record, filters.records))
+    .map(
+      (record) => `
+        <tr data-record-id="${record.id}">
+          <td>${record.id}</td>
+          <td>${record.sceneId}<br />${escapeHtml(record.target)}</td>
+          <td>${record.round}</td>
+          <td>${escapeHtml(record.audioName)}</td>
+          <td>${record.minutes || ""}</td>
+          <td><span class="status ${statusClass(record.result)}">${record.result}</span></td>
+          <td>${escapeHtml(record.keywords)}</td>
+          <td>${escapeHtml(record.devSupport)}</td>
+          <td class="row-actions">
+            <button class="small ghost" type="button" data-edit-record="${record.id}">修改</button>
+            <button class="small ghost danger" type="button" data-delete-record="${record.id}">删除</button>
+          </td>
+        </tr>
+      `,
+    )
+    .join("");
+}
+
+function renderAudio() {
+  $("#audioBody").innerHTML = state.audio
+    .filter((audio) => matchesQuery(audio, filters.audio))
+    .map(
+      (audio) => `
+        <tr data-audio-id="${audio.id}">
+          <td>${audio.id}</td>
+          <td>${escapeHtml(audio.audioName)}</td>
+          <td>${audio.sceneId}<br />${escapeHtml(audio.target)}</td>
+          <td>${audio.round}</td>
+          <td>${escapeHtml(audio.keywords)}</td>
+          <td><span class="status ${statusClass(audio.status)}">${audio.status}</span></td>
+          <td>${escapeHtml(audio.devSupport)}</td>
+          <td class="row-actions">
+            <button class="small ghost" type="button" data-edit-audio="${audio.id}">修改</button>
+            <button class="small ghost danger" type="button" data-delete-audio="${audio.id}">删除</button>
+          </td>
+        </tr>
+      `,
+    )
+    .join("");
+}
+
+function renderIssues() {
+  $("#issuesBody").innerHTML = state.issues
+    .filter((issue) => matchesQuery(issue, filters.issues))
+    .map(
+      (issue) => `
+        <tr data-issue-id="${issue.id}">
+          <td>${issue.id}</td>
+          <td>${escapeHtml(issue.target)}</td>
+          <td>${issue.type}</td>
+          <td>${issue.priority}</td>
+          <td>${issue.impact}</td>
+          <td><span class="status ${statusClass(issue.status)}">${issue.status}</span></td>
+          <td>${escapeHtml(issue.audioName)}</td>
+          <td class="row-actions">
+            <button class="small ghost" type="button" data-edit-issue="${issue.id}">修改</button>
+            <button class="small ghost danger" type="button" data-delete-issue="${issue.id}">删除</button>
+          </td>
+        </tr>
+      `,
+    )
+    .join("");
+}
+
+function renderDictionaries() {
+  const grid = $("#dictionaryGrid");
+  if (!grid) return;
+  grid.innerHTML = Object.entries(dictionaryLabels)
+    .map(
+      ([key, label]) => `
+        <label class="dictionary-card">
+          <span>${label}</span>
+          <textarea data-dictionary-key="${key}">${escapeHtml(dict(key).join("\n"))}</textarea>
+        </label>
+      `,
+    )
+    .join("");
+}
+
+function updateForm(form, item) {
+  Object.entries(item).forEach(([name, value]) => {
+    const field = form.elements[name];
+    if (field) field.value = value ?? "";
+  });
+  form.dataset.editingId = item.id;
+  form.querySelector("[data-cancel-edit]").hidden = false;
+  form.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function upsertById(list, id, item) {
+  const index = list.findIndex((entry) => entry.id === id);
+  if (index === -1) {
+    list.push(item);
+  } else {
+    list[index] = { ...list[index], ...item, id };
+  }
+}
+
+function deleteById(list, id) {
+  const index = list.findIndex((entry) => entry.id === id);
+  if (index !== -1) list.splice(index, 1);
+}
+
+function saveSceneFromForm(data) {
+  const scene = sceneFromForm(data);
+  if (!scene.id) {
+    alert("请先填写场景ID。");
+    return;
+  }
+  const existingId = $("#sceneForm").dataset.editingId;
+  const targetId = existingId || scene.id;
+  upsertById(state.scenes, targetId, scene);
+  syncLinkedSceneData(scene.id);
+  saveState();
+}
+
+function syncLinkedSceneData(sceneId) {
+  const scene = state.scenes.find((item) => item.id === sceneId);
+  if (!scene) return;
+  state.records.forEach((record) => {
+    if (record.sceneId === sceneId) {
+      record.target = scene.target;
+      record.description = scene.description;
+      record.expected = scene.devSupport;
+    }
+  });
+  state.audio.forEach((audio) => {
+    if (audio.sceneId === sceneId) audio.target = scene.target;
+  });
+  state.issues.forEach((issue) => {
+    if (issue.sceneId === sceneId) issue.target = scene.target;
+  });
+}
+
+function saveSceneFromCard(sceneId) {
+  const card = document.querySelector(`[data-scene-card="${sceneId}"]`);
+  const scene = state.scenes.find((item) => item.id === sceneId);
+  if (!card || !scene) return;
+  card.querySelectorAll("[data-scene-field]").forEach((field) => {
+    const key = field.dataset.sceneField;
+    scene[key] = key === "audioName" ? normalizeMp3(field.value) : field.value;
+  });
+  syncLinkedSceneData(sceneId);
+  saveState();
+}
+
+function saveDictionaries() {
+  $("#dictionaryGrid").querySelectorAll("[data-dictionary-key]").forEach((field) => {
+    state.dictionaries[field.dataset.dictionaryKey] = field.value
+      .split("\n")
+      .map((item) => item.trim())
+      .filter(Boolean);
+  });
+  saveState();
+}
+
+function syncFormOptions() {
+  const optionMap = {
+    sceneId: state.scenes.map((scene) => scene.id),
+    round: dict("rounds"),
+    device: dict("devices"),
+    result: dict("results"),
+    priority: dict("priorities"),
+    impact: dict("impact"),
+  };
+  const formSpecific = new Map([
+    ["sceneForm:type", dict("sceneTypes")],
+    ["sceneForm:status", dict("statuses")],
+    ["issueForm:type", dict("issueTypes")],
+    ["audioForm:status", dict("audioStatuses")],
+    ["issueForm:status", dict("issueStatuses")],
+  ]);
+  ["sceneForm", "recordForm", "audioForm", "issueForm"].forEach((formId) => {
+    const form = $(`#${formId}`);
+    if (!form) return;
+    Array.from(form.elements).forEach((field) => {
+      if (field.tagName !== "SELECT") return;
+      const previous = field.value;
+      const choices = formSpecific.get(`${formId}:${field.name}`) || optionMap[field.name];
+      if (!choices) return;
+      field.innerHTML = choices.map((option) => `<option>${escapeHtml(option)}</option>`).join("");
+      if (choices.includes(previous)) field.value = previous;
+    });
+  });
+}
+
+function fillSummary() {
+  $("#summaryCompleted").value = state.summary.completed || "";
+  $("#summaryTopAudio").value = state.summary.topAudio || "";
+  $("#summaryAiGap").value = state.summary.aiGap || "";
+  $("#summaryBlocker").value = state.summary.blocker || "";
+  $("#summaryRerun").value = state.summary.rerun || "";
+  $("#summaryNext").value = state.summary.next || "";
+}
+
+function csvEscape(value) {
+  return `"${String(value ?? "").replaceAll('"', '""')}"`;
+}
+
+function toCsv(rows) {
+  return rows.map((row) => row.map(csvEscape).join(",")).join("\n");
+}
+
+function download(name, content, type) {
+  const blob = new Blob([content], { type });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = name;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+function exportJson() {
+  download(`aicp-sop-training-${Date.now()}.json`, JSON.stringify(state, null, 2), "application/json;charset=utf-8");
+}
+
+function exportCsv() {
+  const rows = [
+    ["类型", "ID", "场景ID", "目标场景", "录音文件", "关键词", "开发支撑点", "状态/结果"],
+    ...state.scenes.map((item) => [
+      "场景清单",
+      item.id,
+      item.id,
+      item.target,
+      item.audioName,
+      item.keywords,
+      item.devSupport,
+      item.status,
+    ]),
+    ...state.records.map((item) => [
+      "现场记录",
+      item.id,
+      item.sceneId,
+      item.target,
+      item.audioName,
+      item.keywords,
+      item.devSupport,
+      item.result,
+    ]),
+    ...state.audio.map((item) => [
+      "录音关键词",
+      item.id,
+      item.sceneId,
+      item.target,
+      item.audioName,
+      item.keywords,
+      item.devSupport,
+      item.status,
+    ]),
+    ...state.issues.map((item) => [
+      "问题需求",
+      item.id,
+      item.sceneId,
+      item.target,
+      item.audioName,
+      item.problem,
+      item.evidence,
+      item.status,
+    ]),
+    ...Object.entries(state.dictionaries).map(([key, values]) => [
+      "字典表",
+      key,
+      "",
+      dictionaryLabels[key] || key,
+      "",
+      values.join(";"),
+      "",
+      "",
+    ]),
+  ];
+  download(`aicp-sop-training-${Date.now()}.csv`, `\ufeff${toCsv(rows)}`, "text/csv;charset=utf-8");
+}
+
+function initNav() {
+  const showView = (name) => {
+    $$(".view").forEach((view) => view.classList.toggle("is-active", view.dataset.view === name));
+    $$("[data-view-link]").forEach((link) => link.classList.toggle("is-active", link.dataset.viewLink === name));
+  };
+  $$("[data-view-link]").forEach((link) => {
+    link.addEventListener("click", (event) => {
+      event.preventDefault();
+      const view = link.dataset.viewLink;
+      history.replaceState(null, "", `#${view}`);
+      showView(view);
+    });
+  });
+  const initial = location.hash.replace("#", "") || "dashboard";
+  showView(initial);
+}
+
+function initEvents() {
+  createForm($("#sceneForm"), sceneFields, "保存场景", (data) => {
+    saveSceneFromForm(data);
+  });
+
+  createForm($("#recordForm"), recordFields, "保存现场记录", (data) => {
+    const editingId = $("#recordForm").dataset.editingId;
+    const record = recordFromForm({ ...data, id: editingId });
+    upsertById(state.records, editingId, record);
+    if (!editingId && !state.audio.some((audio) => audio.audioName === record.audioName)) {
+      state.audio.push(audioFromForm({ ...data, audioName: record.audioName, keywords: record.keywords }));
+    }
+    saveState();
+  });
+
+  createForm($("#audioForm"), audioFields, "保存录音关键词", (data) => {
+    const editingId = $("#audioForm").dataset.editingId;
+    upsertById(state.audio, editingId, audioFromForm({ ...data, id: editingId }));
+    saveState();
+  });
+
+  createForm($("#issueForm"), issueFields, "保存问题需求", (data) => {
+    const editingId = $("#issueForm").dataset.editingId;
+    upsertById(state.issues, editingId, issueFromForm({ ...data, id: editingId }));
+    saveState();
+  });
+
+  $("#saveSummaryBtn").addEventListener("click", () => {
+    state.summary = {
+      completed: $("#summaryCompleted").value,
+      topAudio: $("#summaryTopAudio").value,
+      aiGap: $("#summaryAiGap").value,
+      blocker: $("#summaryBlocker").value,
+      rerun: $("#summaryRerun").value,
+      next: $("#summaryNext").value,
+    };
+    saveState();
+  });
+
+  $("#exportJsonBtn").addEventListener("click", exportJson);
+  $("#exportCsvBtn").addEventListener("click", exportCsv);
+  $("#saveDictionaryBtn").addEventListener("click", saveDictionaries);
+  $("#resetBtn").addEventListener("click", () => {
+    if (confirm("确定重置本地填写数据？场景模板会保留。")) {
+      localStorage.removeItem(STORAGE_KEY);
+      state = structuredClone(initialData);
+      renderAll();
+      syncFormOptions();
+    }
+  });
+
+  [
+    ["#scheduleSearch", "schedule", renderSchedule],
+    ["#sceneSearch", "scenes", renderScenes],
+    ["#recordSearch", "records", renderRecords],
+    ["#audioSearch", "audio", renderAudio],
+    ["#issueSearch", "issues", renderIssues],
+  ].forEach(([selector, key, render]) => {
+    $(selector).addEventListener("input", (event) => {
+      filters[key] = event.target.value;
+      render();
+    });
+  });
+
+  $("#scheduleBody").addEventListener("change", (event) => {
+    const index = event.target.dataset.scheduleIndex;
+    if (index !== undefined) {
+      state.schedule[Number(index)][7] = event.target.value;
+      saveState();
+    }
+  });
+
+  $("#sceneGrid").addEventListener("click", (event) => {
+    const sceneId = event.target.dataset.saveScene;
+    if (sceneId) saveSceneFromCard(sceneId);
+    const deleteSceneId = event.target.dataset.deleteScene;
+    if (deleteSceneId && confirm(`确定删除场景 ${deleteSceneId}？已有现场记录、录音和问题不会自动删除。`)) {
+      deleteById(state.scenes, deleteSceneId);
+      saveState();
+    }
+  });
+
+  $("#recordsBody").addEventListener("click", (event) => {
+    const recordId = event.target.dataset.editRecord;
+    const record = state.records.find((item) => item.id === recordId);
+    if (record) updateForm($("#recordForm"), record);
+    const deleteRecordId = event.target.dataset.deleteRecord;
+    if (deleteRecordId && confirm(`确定删除现场记录 ${deleteRecordId}？`)) {
+      deleteById(state.records, deleteRecordId);
+      saveState();
+    }
+  });
+
+  $("#audioBody").addEventListener("click", (event) => {
+    const audioId = event.target.dataset.editAudio;
+    const audio = state.audio.find((item) => item.id === audioId);
+    if (audio) updateForm($("#audioForm"), audio);
+    const deleteAudioId = event.target.dataset.deleteAudio;
+    if (deleteAudioId && confirm(`确定删除录音记录 ${deleteAudioId}？`)) {
+      deleteById(state.audio, deleteAudioId);
+      saveState();
+    }
+  });
+
+  $("#issuesBody").addEventListener("click", (event) => {
+    const issueId = event.target.dataset.editIssue;
+    const issue = state.issues.find((item) => item.id === issueId);
+    if (issue) updateForm($("#issueForm"), issue);
+    const deleteIssueId = event.target.dataset.deleteIssue;
+    if (deleteIssueId && confirm(`确定删除问题 ${deleteIssueId}？`)) {
+      deleteById(state.issues, deleteIssueId);
+      saveState();
+    }
+  });
+
+  $("#addSceneBtn").addEventListener("click", () => $("#sceneForm").scrollIntoView({ behavior: "smooth" }));
+  $("#addRecordBtn").addEventListener("click", () => $("#recordForm").scrollIntoView({ behavior: "smooth" }));
+  $("#addAudioBtn").addEventListener("click", () => $("#audioForm").scrollIntoView({ behavior: "smooth" }));
+  $("#addIssueBtn").addEventListener("click", () => $("#issueForm").scrollIntoView({ behavior: "smooth" }));
+}
+
+initNav();
+initEvents();
+renderAll();

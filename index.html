@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AICP 数据收集控制台</title>
+    <meta
+      name="description"
+      content="AICP SOP 穿越、录音关键词、问题需求与训练数据采集控制台。"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <aside class="sidebar" aria-label="AICP SOP 导航">
+      <a class="brand" href="#dashboard" aria-label="AICP SOP 首页">
+        <span class="brand-mark">AI</span>
+        <span>
+          <strong>AICP</strong>
+          <small>数据收集控制台</small>
+        </span>
+      </a>
+
+      <nav class="nav" aria-label="模块导航">
+        <a class="is-active" href="#dashboard" data-view-link="dashboard">总览</a>
+        <a href="#schedule" data-view-link="schedule">演练日程</a>
+        <a href="#scenes" data-view-link="scenes">场景清单</a>
+        <a href="#records" data-view-link="records">现场记录</a>
+        <a href="#audio" data-view-link="audio">录音关键词</a>
+        <a href="#issues" data-view-link="issues">问题需求</a>
+        <a href="#dictionary" data-view-link="dictionary">字典表</a>
+        <a href="#summary" data-view-link="summary">当日总结</a>
+      </nav>
+
+      <div class="side-card">
+        <span>数据口径</span>
+        <p>录音文件统一使用 .mp3；同一文件名贯穿现场记录、关键词分析和问题需求。</p>
+      </div>
+    </aside>
+
+    <main class="app">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">2026-05-06 苏州移动现场演练</p>
+          <h1>AICP 数据收集控制台</h1>
+        </div>
+        <div class="top-actions">
+          <button id="exportJsonBtn" type="button">导出 JSON</button>
+          <button id="exportCsvBtn" type="button">导出 CSV</button>
+          <button id="resetBtn" class="ghost danger" type="button">重置数据</button>
+        </div>
+      </header>
+
+      <section id="dashboard" class="view is-active" data-view="dashboard">
+        <div class="hero-panel">
+          <div class="hero-copy">
+            <p class="eyebrow">从演练到训练数据</p>
+            <h2>把师傅 Know-How 演出来，把录音变成可开发的数据资产。</h2>
+            <p>
+              现场只需要围绕场景、录音、关键词、问题四件事填写。系统会把每轮穿越记录、录音文件、关键词和开发支撑点串起来。
+            </p>
+          </div>
+          <img src="aicp-console-hero.png" alt="AI 耳机入户营销场景" />
+        </div>
+
+        <div class="kpi-grid" aria-label="数据统计">
+          <article class="kpi">
+            <span>计划场景</span>
+            <strong id="kpiScenes">0</strong>
+          </article>
+          <article class="kpi">
+            <span>现场记录</span>
+            <strong id="kpiRecords">0</strong>
+          </article>
+          <article class="kpi">
+            <span>录音文件</span>
+            <strong id="kpiAudio">0</strong>
+          </article>
+          <article class="kpi">
+            <span>总录音时长</span>
+            <strong><span id="kpiMinutes">0</span> 分</strong>
+          </article>
+          <article class="kpi">
+            <span>待处理问题</span>
+            <strong id="kpiOpenIssues">0</strong>
+          </article>
+        </div>
+
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>今日收口重点</h2>
+              <p>这些字段填完整，后续大模型分析和开发就有抓手。</p>
+            </div>
+          </div>
+          <div class="focus-grid">
+            <div>
+              <strong>目标场景</strong>
+              <p>这条数据要训练 AI 识别什么场景。</p>
+            </div>
+            <div>
+              <strong>录音文件</strong>
+              <p>文件名统一 .mp3，和记录、关键词、问题保持一致。</p>
+            </div>
+            <div>
+              <strong>关键词/触发词</strong>
+              <p>用分号分隔：用户原话、业务词、情绪词、合规词。</p>
+            </div>
+            <div>
+              <strong>开发数据支撑点</strong>
+              <p>明确这条样本支持哪类能力建设或验收。</p>
+            </div>
+          </div>
+        </section>
+      </section>
+
+      <section id="schedule" class="view" data-view="schedule">
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>演练日程</h2>
+              <p>按 Claude 模板的日程口径推进，状态会保存在本地。</p>
+            </div>
+          </div>
+          <div class="toolbar">
+            <label>
+              <span>查询日程</span>
+              <input id="scheduleSearch" placeholder="输入时间、场景ID、地点、牵头人" />
+            </label>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>时段</th>
+                  <th>时间</th>
+                  <th>场景ID</th>
+                  <th>目标场景</th>
+                  <th>地点</th>
+                  <th>牵头人</th>
+                  <th>参演人员</th>
+                  <th>状态</th>
+                </tr>
+              </thead>
+              <tbody id="scheduleBody"></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+
+      <section id="scenes" class="view" data-view="scenes">
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>场景清单</h2>
+              <p>场景描述、目标场景、录音文件和开发支撑点可以现场修改，保存后会作为后续记录的默认数据。</p>
+            </div>
+            <button type="button" id="addSceneBtn">新增场景</button>
+          </div>
+          <form id="sceneForm" class="entry-form"></form>
+          <div class="toolbar">
+            <label>
+              <span>查询场景</span>
+              <input id="sceneSearch" placeholder="输入场景ID、类型、目标场景、关键词、负责人" />
+            </label>
+          </div>
+          <div id="sceneGrid" class="scene-grid"></div>
+        </section>
+      </section>
+
+      <section id="records" class="view" data-view="records">
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>现场共填记录</h2>
+              <p>每跑一轮新增一条。录音文件名、关键词、开发数据支撑点尽量现场补齐。</p>
+            </div>
+            <button type="button" id="addRecordBtn">新增记录</button>
+          </div>
+          <form id="recordForm" class="entry-form"></form>
+          <div class="toolbar">
+            <label>
+              <span>查询现场记录</span>
+              <input id="recordSearch" placeholder="输入记录ID、场景ID、录音文件、关键词、结果" />
+            </label>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>记录ID</th>
+                  <th>场景</th>
+                  <th>轮次</th>
+                  <th>录音文件</th>
+                  <th>时长</th>
+                  <th>结果</th>
+                  <th>关键词</th>
+                  <th>开发支撑点</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody id="recordsBody"></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+
+      <section id="audio" class="view" data-view="audio">
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>录音文件与关键词</h2>
+              <p>每个 .mp3 文件一行，用于大模型转写、分析和训练检索。</p>
+            </div>
+            <button type="button" id="addAudioBtn">新增录音</button>
+          </div>
+          <form id="audioForm" class="entry-form"></form>
+          <div class="toolbar">
+            <label>
+              <span>查询录音</span>
+              <input id="audioSearch" placeholder="输入音频ID、录音文件、场景ID、关键词、状态" />
+            </label>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>音频ID</th>
+                  <th>录音文件</th>
+                  <th>场景</th>
+                  <th>轮次</th>
+                  <th>关键词</th>
+                  <th>分析状态</th>
+                  <th>开发支撑点</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody id="audioBody"></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+
+      <section id="issues" class="view" data-view="issues">
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>问题与开发需求</h2>
+              <p>把现场发现的问题转成可排期、可验收的开发输入。</p>
+            </div>
+            <button type="button" id="addIssueBtn">新增问题</button>
+          </div>
+          <form id="issueForm" class="entry-form"></form>
+          <div class="toolbar">
+            <label>
+              <span>查询问题</span>
+              <input id="issueSearch" placeholder="输入问题ID、场景、类型、优先级、录音文件、状态" />
+            </label>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>问题ID</th>
+                  <th>目标场景</th>
+                  <th>问题类型</th>
+                  <th>优先级</th>
+                  <th>是否影响演练</th>
+                  <th>状态</th>
+                  <th>关联录音</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody id="issuesBody"></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+
+      <section id="dictionary" class="view" data-view="dictionary">
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>字典表</h2>
+              <p>每行一个选项。保存后，场景、录音、问题等表单的下拉项会同步更新。</p>
+            </div>
+            <button type="button" id="saveDictionaryBtn">保存字典</button>
+          </div>
+          <div id="dictionaryGrid" class="dictionary-grid"></div>
+        </section>
+      </section>
+
+      <section id="summary" class="view" data-view="summary">
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>当日总结</h2>
+              <p>收工前 15 分钟填写，让数据交付和次日优化有明确结论。</p>
+            </div>
+          </div>
+          <div class="summary-grid">
+            <label>
+              实际完成场景数
+              <input id="summaryCompleted" type="number" min="0" />
+            </label>
+            <label>
+              最有价值录音文件 Top3
+              <textarea id="summaryTopAudio"></textarea>
+            </label>
+            <label>
+              最需要补的 AI 能力
+              <textarea id="summaryAiGap"></textarea>
+            </label>
+            <label>
+              现场最大流程卡点
+              <textarea id="summaryBlocker"></textarea>
+            </label>
+            <label>
+              需要明天优先复跑的场景
+              <textarea id="summaryRerun"></textarea>
+            </label>
+            <label>
+              次日改进动作
+              <textarea id="summaryNext"></textarea>
+            </label>
+          </div>
+          <div class="summary-actions">
+            <button id="saveSummaryBtn" type="button">保存总结</button>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <template id="fieldTemplate">
+      <label>
+        <span></span>
+        <input />
+      </label>
+    </template>
+
+    <script src="script.js"></script>
+  </body>
+</html>
