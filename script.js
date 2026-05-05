@@ -10,9 +10,10 @@ const EMPTY_USER = {
 };
 
 const defaultUsers = [
-  { name: "蔡俊", phone: "", unit: "好活", role: "开发", loginAt: "" },
-  { name: "张明昊", phone: "", unit: "好活", role: "开发", loginAt: "" },
-  { name: "王子寅", phone: "", unit: "好活", role: "开发", loginAt: "" },
+  { name: "蔡俊", phone: "18500039693", unit: "好活", role: "开发", loginAt: "" },
+  { name: "张明昊", phone: "18662678967", unit: "好活", role: "开发", loginAt: "" },
+  { name: "王子寅", phone: "13372152239", unit: "好活", role: "开发", loginAt: "" },
+  { name: "邵新", phone: "", unit: "苏州移动 网络部", role: "网络", loginAt: "" },
 ];
 
 const initialDictionaries = {
@@ -281,7 +282,10 @@ function mergeUsers(...groups) {
   const users = [];
   groups.flat().forEach((user) => {
     const key = user.phone || `${user.name}-${user.unit}`;
-    if (!users.some((item) => (item.phone || `${item.name}-${item.unit}`) === key)) {
+    const existing = users.find((item) => (item.phone || `${item.name}-${item.unit}`) === key || item.name === user.name);
+    if (existing) {
+      Object.assign(existing, { ...EMPTY_USER, ...existing, ...user });
+    } else {
       users.push({ ...EMPTY_USER, ...user });
     }
   });
@@ -856,6 +860,21 @@ function renderLoginRoleOptions() {
   if (selected && dict("roles").includes(selected)) roleSelect.value = selected;
 }
 
+function loginUser(user) {
+  state.currentUser = {
+    ...EMPTY_USER,
+    ...user,
+    loginAt: new Date().toISOString(),
+  };
+  const existing = state.users.find((item) => item.phone === state.currentUser.phone || item.name === state.currentUser.name);
+  if (existing) {
+    Object.assign(existing, state.currentUser);
+  } else {
+    state.users.push({ ...state.currentUser });
+  }
+  saveState();
+}
+
 function updateForm(form, item) {
   Object.entries(item).forEach(([name, value]) => {
     const field = form.elements[name];
@@ -1103,32 +1122,19 @@ function initEvents() {
   $("#loginForm").addEventListener("click", (event) => {
     const name = event.target.dataset.quickUser;
     if (!name) return;
-    const user = state.users.find((item) => item.name === name) || { name, phone: "", unit: "好活" };
-    const form = event.currentTarget;
-    form.elements.name.value = user.name;
-    form.elements.phone.value = user.phone || "";
-    form.elements.unit.value = user.unit || "好活";
-    form.elements.role.value = user.role || "开发";
-    form.elements.phone.focus();
+    const user = state.users.find((item) => item.name === name) || defaultUsers.find((item) => item.name === name);
+    if (user) loginUser(user);
   });
 
   $("#loginForm").addEventListener("submit", (event) => {
     event.preventDefault();
     const data = Object.fromEntries(new FormData(event.currentTarget));
-    state.currentUser = {
+    loginUser({
       name: String(data.name || "").trim(),
       phone: String(data.phone || "").trim(),
       unit: String(data.unit || "").trim(),
       role: String(data.role || "").trim(),
-      loginAt: new Date().toISOString(),
-    };
-    const existing = state.users.find((user) => user.phone === state.currentUser.phone);
-    if (existing) {
-      Object.assign(existing, state.currentUser);
-    } else {
-      state.users.push({ ...state.currentUser });
-    }
-    saveState();
+    });
   });
 
   $("#switchUserBtn").addEventListener("click", () => {
