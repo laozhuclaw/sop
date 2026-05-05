@@ -39,6 +39,7 @@ const defaultUsers = [
   { name: "张明昊", phone: "18662678967", unit: "好活", role: "开发", loginAt: "" },
   { name: "王子寅", phone: "13372152239", unit: "好活", role: "开发", loginAt: "" },
   { name: "邵新", phone: "待补充", unit: "苏州移动 网络部", role: "网络", loginAt: "" },
+  { name: "AI", phone: "19900000000", unit: "AICP", role: "AI", loginAt: "" },
 ];
 
 const initialDictionaries = {
@@ -52,7 +53,7 @@ const initialDictionaries = {
   priorities: ["P0-必须当天解决", "P1-本周解决", "P2-可排期", "P3-观察"],
   impact: ["是", "否", "部分影响"],
   issueStatuses: ["待确认", "待开发", "开发中", "待验收", "已关闭", "暂缓"],
-  roles: ["网络", "市场", "装维", "营业厅", "开发"],
+  roles: ["网络", "市场", "装维", "营业厅", "开发", "AI"],
   sceneTags: ["测试数据"],
 };
 
@@ -73,18 +74,18 @@ const dictionaryLabels = {
 
 const sampleSubmitter = {
   tags: "测试数据",
-  submitterName: "邵新",
-  submitterPhone: "待补充",
-  submitterUnit: "苏州移动 网络部",
-  submitterRole: "网络",
-  collectorName: "邵新",
-  collectorPhone: "待补充",
-  collectorUnit: "苏州移动 网络部",
-  collectorRole: "网络",
-  updatedByName: "邵新",
-  updatedByPhone: "待补充",
-  updatedByUnit: "苏州移动 网络部",
-  updatedByRole: "网络",
+  submitterName: "AI",
+  submitterPhone: "19900000000",
+  submitterUnit: "AICP",
+  submitterRole: "AI",
+  collectorName: "AI",
+  collectorPhone: "19900000000",
+  collectorUnit: "AICP",
+  collectorRole: "AI",
+  updatedByName: "AI",
+  updatedByPhone: "19900000000",
+  updatedByUnit: "AICP",
+  updatedByRole: "AI",
 };
 
 const initialData = {
@@ -455,7 +456,19 @@ async function saveAudioBlob(id, file) {
     body: form,
   });
   if (!res.ok) throw new Error(`audio upload failed (HTTP ${res.status})`);
-  return res.json();
+  const stored = await res.json();
+  await verifyAudioBlob(id, stored.size || file.size);
+  return stored;
+}
+
+async function verifyAudioBlob(id, expectedSize) {
+  const res = await fetch(apiUrl(`audio/${encodeURIComponent(id)}`), { method: "HEAD" });
+  if (!res.ok) throw new Error(`server audio verify failed (HTTP ${res.status})`);
+  const serverSize = Number(res.headers.get("Content-Length") || 0);
+  if (expectedSize && serverSize !== Number(expectedSize)) {
+    throw new Error(`server audio size mismatch (${serverSize}/${expectedSize})`);
+  }
+  return true;
 }
 
 function getAudioUrl(id) {
@@ -767,6 +780,15 @@ function renderLoginState() {
   $("#currentUserPill").textContent = hasUser()
     ? `${state.currentUser.name}｜${state.currentUser.unit}｜${state.currentUser.role}`
     : "未登录";
+  renderQuickUsers();
+}
+
+function renderQuickUsers() {
+  const box = document.querySelector(".quick-users");
+  if (!box) return;
+  box.innerHTML = `<span>默认人员</span>${state.users
+    .map((user) => `<button class="ghost" type="button" data-quick-user="${attr(user.name)}">${escapeHtml(user.name)}</button>`)
+    .join("")}`;
 }
 
 function statusClass(value) {
@@ -791,6 +813,7 @@ function renderAll() {
   renderRecords();
   renderAudio();
   renderIssues();
+  renderUsers();
   renderDictionaries();
   fillSummary();
   renderLoginState();
@@ -1015,6 +1038,13 @@ const issueFields = [
   ["acceptance", "验收标准", "textarea", "field-wide"],
 ];
 
+const userFields = [
+  ["name", "姓名"],
+  ["phone", "手机号"],
+  ["unit", "单位"],
+  ["role", "角色", "selectRole"],
+];
+
 function createForm(form, fields, submitLabel, onSubmit) {
   form.innerHTML = fields.map(([name, label, type, className]) => fieldMarkup(name, label, type, className)).join("");
   const action = document.createElement("div");
@@ -1083,6 +1113,7 @@ function fieldMarkup(name, label, type = "text", className = "") {
     selectImpact: dict("impact"),
     selectIssueStatus: dict("issueStatuses"),
     selectSceneTag: dict("sceneTags"),
+    selectRole: dict("roles"),
   }[type];
   if (selectOptions) {
     return `<label class="${className}"><span>${label}</span><select name="${name}">${selectOptions
@@ -1170,6 +1201,8 @@ function audioFromForm(data) {
     hasAudioFile: uploadedFile ? true : Boolean(data.hasAudioFile),
     audioFileSize: data.audioFileSize || "",
     audioUploadedAt: data.audioUploadedAt || "",
+    serverVerifiedAt: data.serverVerifiedAt || "",
+    serverChecksum: data.serverChecksum || "",
     ...currentUserFields(),
     note: "",
   };
@@ -1312,6 +1345,32 @@ function renderDictionaries() {
     .join("");
 }
 
+function userKey(user) {
+  return user.phone || `${user.name}-${user.unit}`;
+}
+
+function renderUsers() {
+  const body = $("#usersBody");
+  if (!body) return;
+  body.innerHTML = state.users
+    .map(
+      (user) => `
+        <tr>
+          <td>${escapeHtml(user.name)}</td>
+          <td>${escapeHtml(user.phone)}</td>
+          <td>${escapeHtml(user.unit)}</td>
+          <td>${escapeHtml(user.role)}</td>
+          <td>${user.loginAt ? escapeHtml(new Date(user.loginAt).toLocaleString("zh-CN")) : ""}</td>
+          <td class="row-actions">
+            <button class="small ghost" type="button" data-edit-user="${attr(userKey(user))}">修改</button>
+            <button class="small ghost danger" type="button" data-delete-user="${attr(userKey(user))}">删除</button>
+          </td>
+        </tr>
+      `,
+    )
+    .join("");
+}
+
 function renderQuerySelects() {
   const typeSelect = $("#sceneTypeQuery");
   const statusSelect = $("#sceneStatusQuery");
@@ -1358,7 +1417,7 @@ function updateForm(form, item) {
     const field = form.elements[name];
     if (field) field.value = value ?? "";
   });
-  form.dataset.editingId = item.id;
+  form.dataset.editingId = item.id || userKey(item);
   form.querySelector("[data-cancel-edit]").hidden = false;
   form.scrollIntoView({ behavior: "smooth", block: "start" });
 }
@@ -1375,6 +1434,36 @@ function upsertById(list, id, item) {
 function deleteById(list, id) {
   const index = list.findIndex((entry) => entry.id === id);
   if (index !== -1) list.splice(index, 1);
+}
+
+function userFromForm(data) {
+  return {
+    name: String(data.name || "").trim(),
+    phone: String(data.phone || "").trim(),
+    unit: String(data.unit || "").trim(),
+    role: String(data.role || "").trim(),
+    loginAt: "",
+  };
+}
+
+function upsertUser(editingKey, user) {
+  if (!user.name || !user.phone || !user.unit || !user.role) {
+    showToast("请把姓名、手机号、单位、角色填写完整。", "error");
+    return false;
+  }
+  const key = editingKey || userKey(user);
+  const index = state.users.findIndex((item) => userKey(item) === key || item.name === user.name || item.phone === user.phone);
+  if (index === -1) {
+    state.users.push(user);
+  } else {
+    state.users[index] = { ...state.users[index], ...user };
+  }
+  return true;
+}
+
+function deleteUserByKey(key) {
+  const index = state.users.findIndex((user) => userKey(user) === key);
+  if (index !== -1) state.users.splice(index, 1);
 }
 
 function saveSceneFromForm(data) {
@@ -1465,6 +1554,7 @@ function syncFormOptions() {
     ["audioForm:tags", dict("sceneTags")],
     ["issueForm:tags", dict("sceneTags")],
     ["issueForm:type", dict("issueTypes")],
+    ["userForm:role", dict("roles")],
     ["audioForm:status", dict("audioStatuses")],
     ["issueForm:status", dict("issueStatuses")],
   ]);
@@ -1570,6 +1660,22 @@ function exportCsv() {
       ...submitterValues(item),
       "",
     ]),
+    ...state.users.map((item) => [
+      "人员列表",
+      userKey(item),
+      "",
+      item.name,
+      "",
+      "",
+      item.phone,
+      item.unit,
+      item.loginAt || "",
+      item.name,
+      item.phone,
+      item.unit,
+      item.role,
+      "",
+    ]),
     ...Object.entries(state.dictionaries).map(([key, values]) => [
       "字典表",
       key,
@@ -1659,21 +1765,34 @@ function initEvents() {
       hasAudioFile: previous?.hasAudioFile || false,
       audioFileSize: previous?.audioFileSize || "",
       audioUploadedAt: previous?.audioUploadedAt || "",
+      serverVerifiedAt: previous?.serverVerifiedAt || "",
+      serverChecksum: previous?.serverChecksum || "",
     });
     if (data.audioFile?.size) {
       const stored = await saveAudioBlob(audio.id, data.audioFile);
       audio.hasAudioFile = true;
       audio.audioFileSize = stored?.size || data.audioFile.size;
       audio.audioUploadedAt = new Date().toISOString();
+      audio.serverVerifiedAt = new Date().toISOString();
+      audio.serverChecksum = stored?.checksum || "";
+      if (!data.status || data.status === "待上传") audio.status = "已上传";
     }
     upsertById(state.audio, editingId, audio);
-    return saveState(editingId ? "录音关键词修改已提交并同步。" : "录音关键词已提交并同步。");
+    const uploadedMessage = data.audioFile?.size ? "录音文件已上传服务器并校验通过。" : "";
+    return saveState(`${editingId ? "录音关键词修改已提交并同步。" : "录音关键词已提交并同步。"}${uploadedMessage}`);
   });
 
   createForm($("#issueForm"), issueFields, "保存问题需求", (data) => {
     const editingId = $("#issueForm").dataset.editingId;
     upsertById(state.issues, editingId, issueFromForm({ ...data, id: editingId }));
     return saveState(editingId ? "问题需求修改已提交并同步。" : "问题需求已提交并同步。");
+  });
+
+  createForm($("#userForm"), userFields, "保存人员", (data) => {
+    const editingKey = $("#userForm").dataset.editingId;
+    const user = userFromForm(data);
+    if (!upsertUser(editingKey, user)) return false;
+    return saveState(editingKey ? "人员信息修改已提交并同步。" : "新增人员已提交并同步。");
   });
 
   $("#saveSummaryBtn").addEventListener("click", async () => {
@@ -1816,10 +1935,23 @@ function initEvents() {
     }
   });
 
+  $("#usersBody").addEventListener("click", (event) => {
+    const editUserKey = event.target.dataset.editUser;
+    const user = state.users.find((item) => userKey(item) === editUserKey);
+    if (user) updateForm($("#userForm"), user);
+    const deleteUserKey = event.target.dataset.deleteUser;
+    const deleteUser = state.users.find((item) => userKey(item) === deleteUserKey);
+    if (deleteUserKey && deleteUser && doubleConfirm(`删除人员 ${deleteUser.name}？`, "删除后该人员不会出现在快捷登录和人员列表中。")) {
+      deleteUserByKey(deleteUserKey);
+      saveState(`人员 ${deleteUser.name} 已删除并同步。`);
+    }
+  });
+
   $("#addSceneBtn").addEventListener("click", () => $("#sceneForm").scrollIntoView({ behavior: "smooth" }));
   $("#addRecordBtn").addEventListener("click", () => $("#recordForm").scrollIntoView({ behavior: "smooth" }));
   $("#addAudioBtn").addEventListener("click", () => $("#audioForm").scrollIntoView({ behavior: "smooth" }));
   $("#addIssueBtn").addEventListener("click", () => $("#issueForm").scrollIntoView({ behavior: "smooth" }));
+  $("#addUserBtn").addEventListener("click", () => $("#userForm").scrollIntoView({ behavior: "smooth" }));
 }
 
 async function bootstrap() {

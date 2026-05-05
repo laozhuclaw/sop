@@ -110,6 +110,9 @@ await t("audio upload roundtrip", async () => {
 
   const get = await fetch(`${BASE}/api/audio/AUD-X1`);
   assert.equal(get.status, 200);
+  const head = await fetch(`${BASE}/api/audio/AUD-X1`, { method: "HEAD" });
+  assert.equal(head.status, 200);
+  assert.equal(Number(head.headers.get("content-length")), 4);
   const buf = new Uint8Array(await get.arrayBuffer());
   assert.deepEqual(Array.from(buf), Array.from(bytes));
 });

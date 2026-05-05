@@ -228,24 +228,46 @@ app.post("/api/audio/:id", upload.single("file"), async (req, res) => {
   }
 });
 
+async function audioFileInfo(id) {
+  const { blob, meta } = audioPaths(id);
+  let metaInfo = null;
+  try {
+    metaInfo = JSON.parse(await fsp.readFile(meta, "utf8"));
+  } catch {}
+  const stat = await fsp.stat(blob).catch(() => null);
+  return { blob, metaInfo, stat };
+}
+
+function setAudioHeaders(res, stat, metaInfo) {
+  res.setHeader("Content-Type", metaInfo?.mimeType || "audio/mpeg");
+  res.setHeader("Content-Length", stat.size);
+  if (metaInfo?.checksum) res.setHeader("X-Audio-Checksum", metaInfo.checksum);
+  if (metaInfo?.fileName) {
+    // Allow inline playback; download attribute on the link forces download.
+    res.setHeader(
+      "Content-Disposition",
+      `inline; filename*=UTF-8''${encodeURIComponent(metaInfo.fileName)}`,
+    );
+  }
+}
+
+app.head("/api/audio/:id", async (req, res) => {
+  try {
+    const { metaInfo, stat } = await audioFileInfo(req.params.id);
+    if (!stat) return res.sendStatus(404);
+    setAudioHeaders(res, stat, metaInfo);
+    res.status(200).end();
+  } catch (err) {
+    console.error("audio head failed", err);
+    res.sendStatus(500);
+  }
+});
+
 app.get("/api/audio/:id", async (req, res) => {
   try {
-    const { blob, meta } = audioPaths(req.params.id);
-    let metaInfo = null;
-    try {
-      metaInfo = JSON.parse(await fsp.readFile(meta, "utf8"));
-    } catch {}
-    const stat = await fsp.stat(blob).catch(() => null);
+    const { blob, metaInfo, stat } = await audioFileInfo(req.params.id);
     if (!stat) return res.status(404).json({ error: "not_found" });
-    res.setHeader("Content-Type", metaInfo?.mimeType || "audio/mpeg");
-    res.setHeader("Content-Length", stat.size);
-    if (metaInfo?.fileName) {
-      // Allow inline playback; download attribute on the link forces download.
-      res.setHeader(
-        "Content-Disposition",
-        `inline; filename*=UTF-8''${encodeURIComponent(metaInfo.fileName)}`,
-      );
-    }
+    setAudioHeaders(res, stat, metaInfo);
     fs.createReadStream(blob).pipe(res);
   } catch (err) {
     console.error("audio fetch failed", err);

@@ -22,6 +22,7 @@
           <button class="ghost" type="button" data-quick-user="张明昊">张明昊</button>
           <button class="ghost" type="button" data-quick-user="王子寅">王子寅</button>
           <button class="ghost" type="button" data-quick-user="邵新">邵新</button>
+          <button class="ghost" type="button" data-quick-user="AI">AI</button>
         </div>
         <label>
           <span>姓名</span>
@@ -59,6 +60,7 @@
         <a href="#records" data-view-link="records">现场记录</a>
         <a href="#audio" data-view-link="audio">录音关键词</a>
         <a href="#issues" data-view-link="issues">问题需求</a>
+        <a href="#people" data-view-link="people">人员列表</a>
         <a href="#dictionary" data-view-link="dictionary">字典表</a>
         <a href="#help" data-view-link="help">使用说明</a>
         <a href="#summary" data-view-link="summary">当日总结</a>
@@ -307,7 +309,7 @@
           </div>
           <div class="notice-strip">
             <strong>本地录音上传：</strong>
-            <span>点击“新增录音”，在“上传mp3文件”选择本地录音，保存后音频会存入当前浏览器本地数据库，并在下方表格中显示播放器和下载入口。</span>
+            <span>点击“新增录音”，在“上传mp3文件”选择本地 .mp3，提交后文件会上传到服务器侧，并在下方表格中显示播放器和下载入口。</span>
           </div>
           <form id="audioForm" class="entry-form"></form>
           <div class="toolbar">
@@ -387,6 +389,34 @@
             <button type="button" id="saveDictionaryBtn">保存字典</button>
           </div>
           <div id="dictionaryGrid" class="dictionary-grid"></div>
+        </section>
+      </section>
+
+      <section id="people" class="view" data-view="people">
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>人员列表</h2>
+              <p>维护可登录人员。新增或修改人员后，登录页快捷人员和提交人字段会同步使用。</p>
+            </div>
+            <button type="button" id="addUserBtn">新增人员</button>
+          </div>
+          <form id="userForm" class="entry-form"></form>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>姓名</th>
+                  <th>手机号</th>
+                  <th>单位</th>
+                  <th>角色</th>
+                  <th>最近登录</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody id="usersBody"></tbody>
+            </table>
+          </div>
         </section>
       </section>
 
