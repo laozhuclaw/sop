@@ -72,8 +72,8 @@ if ! command -v node >/dev/null 2>&1; then
   exit 1
 fi
 npm install --omit=dev --no-audit --no-fund
-mkdir -p data/uploads
-if systemctl list-unit-files | grep -q '^${SERVICE}.service'; then
+mkdir -p data/uploads data/videos
+if systemctl list-unit-files "${SERVICE}.service" >/dev/null 2>&1; then
   systemctl restart ${SERVICE}.service
   systemctl --no-pager status ${SERVICE}.service | head -15 || true
 else
