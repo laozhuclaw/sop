@@ -1,0 +1,22 @@
+[Unit]
+Description=AICP SOP Console backend
+After=network.target
+
+[Service]
+Type=simple
+# Adjust User if you create a non-root deploy user (recommended).
+User=root
+WorkingDirectory=/var/www/html/sop/server
+Environment=NODE_ENV=production
+Environment=PORT=3000
+Environment=HOST=127.0.0.1
+# Optional: protect /api/reset behind a token. Uncomment + set a real value.
+# Environment=ADMIN_TOKEN=change-me-to-a-long-random-string
+ExecStart=/usr/bin/node server.js
+Restart=on-failure
+RestartSec=2
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

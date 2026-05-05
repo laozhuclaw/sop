@@ -275,6 +275,35 @@ h2 {
   font-weight: 900;
 }
 
+.sync-pill {
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+}
+.sync-pill[data-kind="ok"] {
+  color: #0f7b3d;
+  border-color: #94d6a8;
+  background: #ecfaf0;
+}
+.sync-pill[data-kind="saving"],
+.sync-pill[data-kind="merged"] {
+  color: #8a5a06;
+  border-color: #f0c980;
+  background: #fff6e0;
+}
+.sync-pill[data-kind="newer"] {
+  color: #0b59c1;
+  border-color: #9ec1f0;
+  background: #ecf3ff;
+}
+.sync-pill[data-kind="offline"],
+.sync-pill[data-kind="error"] {
+  color: #b1331a;
+  border-color: #efb1a0;
+  background: #fdecea;
+}
+
 .view {
   display: none;
 }

@@ -1,6 +1,31 @@
-const STORAGE_KEY = "aicp-sop-training-v1";
-const AUDIO_DB_NAME = "aicp-sop-audio-db";
-const AUDIO_STORE_NAME = "audioFiles";
+// --- shared backend integration --------------------------------------------
+// All structured state lives on the server (see server/server.js).
+// Only the per-browser current user is kept in localStorage so each device
+// stays "logged in" across reloads.
+const API_BASE = "api";
+const LOCAL_USER_KEY = "aicp-sop-current-user-v1";
+let stateVersion = 0;
+let lastSyncedAt = "";
+let saveQueue = Promise.resolve();
+let pollTimer = null;
+const POLL_INTERVAL_MS = 4000;
+
+function apiUrl(path) {
+  return `${API_BASE}/${path.replace(/^\/+/, "")}`;
+}
+
+async function apiJson(path, options = {}) {
+  const res = await fetch(apiUrl(path), {
+    headers: { "Content-Type": "application/json", ...(options.headers || {}) },
+    ...options,
+  });
+  if (!res.ok && res.status !== 409) {
+    throw new Error(`API ${path} -> HTTP ${res.status}`);
+  }
+  const body = await res.json().catch(() => ({}));
+  return { ok: res.ok, status: res.status, body };
+}
+
 const EMPTY_USER = {
   name: "",
   phone: "",
@@ -211,65 +236,99 @@ const sceneQuery = {
   tag: "",
   keyword: "",
 };
-const audioObjectUrls = new Map();
 
-function openAudioDb() {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open(AUDIO_DB_NAME, 1);
-    request.onupgradeneeded = () => {
-      request.result.createObjectStore(AUDIO_STORE_NAME, { keyPath: "id" });
-    };
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-  });
-}
-
+// Audio blobs live on the shared server. saveAudioBlob uploads an mp3 and
+// returns its server-side metadata; getAudioUrl gives a streaming URL the
+// browser can drop straight into <audio src>.
 async function saveAudioBlob(id, file) {
   if (!file || !file.size) return null;
-  const db = await openAudioDb();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(AUDIO_STORE_NAME, "readwrite");
-    tx.objectStore(AUDIO_STORE_NAME).put({
-      id,
-      blob: file,
-      fileName: normalizeMp3(file.name),
-      mimeType: file.type || "audio/mpeg",
-      size: file.size,
-      updatedAt: new Date().toISOString(),
-    });
-    tx.oncomplete = () => resolve({ fileName: normalizeMp3(file.name), size: file.size });
-    tx.onerror = () => reject(tx.error);
+  const form = new FormData();
+  form.append("file", file, normalizeMp3(file.name));
+  form.append("fileName", normalizeMp3(file.name));
+  const res = await fetch(apiUrl(`audio/${encodeURIComponent(id)}`), {
+    method: "POST",
+    body: form,
   });
+  if (!res.ok) throw new Error(`audio upload failed (HTTP ${res.status})`);
+  return res.json();
 }
 
-async function getAudioBlob(id) {
-  const db = await openAudioDb();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(AUDIO_STORE_NAME, "readonly");
-    const request = tx.objectStore(AUDIO_STORE_NAME).get(id);
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-  });
+function getAudioUrl(id) {
+  // Cache-bust on uploadedAt so re-uploads bypass the browser cache.
+  const audio = state?.audio?.find((item) => item.id === id);
+  const v = audio?.audioUploadedAt ? `?v=${encodeURIComponent(audio.audioUploadedAt)}` : "";
+  return apiUrl(`audio/${encodeURIComponent(id)}${v}`);
 }
 
 async function deleteAudioBlob(id) {
-  const db = await openAudioDb();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(AUDIO_STORE_NAME, "readwrite");
-    tx.objectStore(AUDIO_STORE_NAME).delete(id);
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
-  });
+  await fetch(apiUrl(`audio/${encodeURIComponent(id)}`), { method: "DELETE" }).catch(() => {});
 }
 
+// Bootstrap-time placeholder: returns a normalized empty state with the
+// per-browser current user (if any) restored from localStorage. The real data
+// is fetched from the server immediately after via hydrateFromServer().
 function loadState() {
-  const saved = localStorage.getItem(STORAGE_KEY);
-  if (!saved) return normalizeState({});
+  const local = readLocalCurrentUser();
+  return normalizeState({ currentUser: local });
+}
+
+function readLocalCurrentUser() {
   try {
-    return normalizeState(JSON.parse(saved));
+    const raw = localStorage.getItem(LOCAL_USER_KEY);
+    return raw ? JSON.parse(raw) : null;
   } catch {
-    return normalizeState({});
+    return null;
   }
+}
+
+function writeLocalCurrentUser(user) {
+  try {
+    if (user && user.name) {
+      localStorage.setItem(LOCAL_USER_KEY, JSON.stringify(user));
+    } else {
+      localStorage.removeItem(LOCAL_USER_KEY);
+    }
+  } catch {}
+}
+
+async function hydrateFromServer() {
+  const { ok, body } = await apiJson("state");
+  if (!ok) throw new Error("failed to load shared state");
+  stateVersion = body.version || 0;
+  lastSyncedAt = body.updatedAt || "";
+  applyServerState(body.data || {});
+}
+
+function applyServerState(serverData) {
+  const currentUser = state?.currentUser?.name ? state.currentUser : readLocalCurrentUser();
+  state = normalizeState({ ...serverData, currentUser });
+  renderAll();
+  syncFormOptions();
+}
+
+// Used when the server reports a version conflict. Local edits beat server
+// values entity-by-entity (id-keyed merge), keeping the user's in-flight work
+// while still picking up other users' additions.
+function mergeStates(localData, serverData) {
+  const merged = { ...serverData, ...localData };
+  for (const key of ["scenes", "records", "audio", "issues"]) {
+    const localList = Array.isArray(localData[key]) ? localData[key] : [];
+    const serverList = Array.isArray(serverData[key]) ? serverData[key] : [];
+    const byId = new Map();
+    for (const item of serverList) if (item && item.id) byId.set(item.id, item);
+    for (const item of localList) if (item && item.id) byId.set(item.id, item);
+    merged[key] = Array.from(byId.values());
+  }
+  if (localData.dictionaries || serverData.dictionaries) {
+    merged.dictionaries = { ...(serverData.dictionaries || {}), ...(localData.dictionaries || {}) };
+  }
+  if (Array.isArray(localData.users) || Array.isArray(serverData.users)) {
+    const byKey = new Map();
+    for (const u of serverData.users || []) byKey.set(u.phone || u.name, u);
+    for (const u of localData.users || []) byKey.set(u.phone || u.name, u);
+    merged.users = Array.from(byKey.values());
+  }
+  return merged;
 }
 
 function normalizeState(saved) {
@@ -305,10 +364,98 @@ function uniqueList(items) {
   return Array.from(new Set(items.map((item) => String(item || "").trim()).filter(Boolean)));
 }
 
+// Saves the current state to the server. Renders + persists locally first
+// (so the UI feels instant), then PUTs in the background. Concurrent saves
+// from this tab are serialized so version numbers stay consistent. If another
+// browser raced us, the server's data is merged with ours (ours wins for
+// entities we both touched) and we PUT again.
 function saveState() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  writeLocalCurrentUser(state.currentUser);
   renderAll();
   syncFormOptions();
+  saveQueue = saveQueue.then(() => pushStateToServer()).catch((err) => {
+    console.warn("save chain error", err);
+  });
+  return saveQueue;
+}
+
+function stripLocalOnly(data) {
+  // currentUser is per-browser; never push it to the shared store.
+  const { currentUser: _drop, ...rest } = data || {};
+  return rest;
+}
+
+async function pushStateToServer(retry = 0) {
+  const payload = stripLocalOnly(state);
+  let res;
+  try {
+    res = await apiJson("state", {
+      method: "PUT",
+      body: JSON.stringify({ data: payload, expectedVersion: stateVersion }),
+    });
+  } catch (err) {
+    showSyncStatus("offline", "保存失败：连不上服务器，请检查网络。");
+    throw err;
+  }
+  if (res.status === 409) {
+    if (retry > 3) {
+      showSyncStatus("error", "数据反复冲突，请刷新页面后重试。");
+      return;
+    }
+    const serverData = res.body.serverData || {};
+    stateVersion = res.body.currentVersion || stateVersion;
+    const merged = mergeStates(payload, serverData);
+    state = normalizeState({ ...merged, currentUser: state.currentUser });
+    renderAll();
+    syncFormOptions();
+    showSyncStatus("merged", `已合并其他人的修改（v${stateVersion}）`);
+    return pushStateToServer(retry + 1);
+  }
+  if (res.ok && res.body) {
+    stateVersion = res.body.version || stateVersion;
+    lastSyncedAt = res.body.updatedAt || lastSyncedAt;
+    showSyncStatus("ok");
+  }
+}
+
+function showSyncStatus(kind, message) {
+  const pill = document.getElementById("syncPill");
+  if (!pill) return;
+  pill.dataset.kind = kind;
+  if (kind === "ok") {
+    pill.textContent = `已同步 v${stateVersion}`;
+  } else if (kind === "saving") {
+    pill.textContent = "保存中…";
+  } else if (kind === "merged") {
+    pill.textContent = message || "已合并";
+  } else if (kind === "offline") {
+    pill.textContent = message || "离线";
+  } else if (kind === "error") {
+    pill.textContent = message || "同步失败";
+  } else if (kind === "newer") {
+    pill.textContent = message || "有新数据";
+  } else {
+    pill.textContent = message || kind;
+  }
+}
+
+async function pollForUpdates() {
+  try {
+    const { ok, body } = await apiJson("state/version");
+    if (!ok) return;
+    if (body.version && body.version > stateVersion) {
+      // Don't blow away in-flight edits inside scene cards or forms.
+      const editing = document.activeElement?.closest?.(".scene-card, form, textarea, input, select");
+      if (editing) {
+        showSyncStatus("newer", `有新数据 v${body.version}（点同步状态刷新）`);
+        return;
+      }
+      await hydrateFromServer();
+      showSyncStatus("ok");
+    }
+  } catch {
+    // network blip — silent
+  }
 }
 
 const $ = (selector) => document.querySelector(selector);
@@ -806,31 +953,19 @@ function renderAudio() {
     .join("");
 }
 
-async function hydrateAudioPlayers() {
+function hydrateAudioPlayers() {
+  // Audio is streamed straight from the shared backend; no IndexedDB step.
   const cells = $$("[data-audio-player]");
-  await Promise.all(
-    cells.map(async (cell) => {
-      const id = cell.dataset.audioPlayer;
-      const audio = state.audio.find((item) => item.id === id);
-      if (!audio?.hasAudioFile) return;
-      try {
-        const stored = await getAudioBlob(id);
-        if (!stored?.blob) {
-          cell.innerHTML = '<span class="muted-text">文件缺失</span>';
-          return;
-        }
-        if (audioObjectUrls.has(id)) URL.revokeObjectURL(audioObjectUrls.get(id));
-        const url = URL.createObjectURL(stored.blob);
-        audioObjectUrls.set(id, url);
-        cell.innerHTML = `
-          <audio controls preload="metadata" src="${url}"></audio>
-          <a class="download-link" href="${url}" download="${attr(audio.audioName || stored.fileName || `${id}.mp3`)}">下载</a>
-        `;
-      } catch {
-        cell.innerHTML = '<span class="muted-text">无法加载</span>';
-      }
-    }),
-  );
+  cells.forEach((cell) => {
+    const id = cell.dataset.audioPlayer;
+    const audio = state.audio.find((item) => item.id === id);
+    if (!audio?.hasAudioFile) return;
+    const url = getAudioUrl(id);
+    cell.innerHTML = `
+      <audio controls preload="metadata" src="${url}"></audio>
+      <a class="download-link" href="${url}" download="${attr(audio.audioName || `${id}.mp3`)}">下载</a>
+    `;
+  });
 }
 
 function renderIssues() {
@@ -1256,12 +1391,26 @@ function initEvents() {
   $("#exportJsonBtn").addEventListener("click", exportJson);
   $("#exportCsvBtn").addEventListener("click", exportCsv);
   $("#saveDictionaryBtn").addEventListener("click", saveDictionaries);
-  $("#resetBtn").addEventListener("click", () => {
-    if (confirm("确定重置本地填写数据？场景模板会保留。")) {
-      localStorage.removeItem(STORAGE_KEY);
-      state = normalizeState({});
-      renderAll();
-      syncFormOptions();
+  $("#resetBtn").addEventListener("click", async () => {
+    if (!confirm("确定重置共享数据？这会清空服务器上所有人填写的内容和录音文件。")) return;
+    if (!confirm("再次确认：所有现场记录、录音、问题都会被删除，且不可恢复。继续？")) return;
+    try {
+      const res = await fetch(apiUrl("reset"), { method: "POST" });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      stateVersion = 0;
+      await hydrateFromServer();
+      showSyncStatus("ok");
+    } catch (err) {
+      alert(`重置失败：${err.message}`);
+    }
+  });
+
+  $("#syncPill")?.addEventListener("click", async () => {
+    try {
+      await hydrateFromServer();
+      showSyncStatus("ok");
+    } catch (err) {
+      showSyncStatus("error", `刷新失败：${err.message}`);
     }
   });
 
@@ -1350,10 +1499,6 @@ function initEvents() {
     if (deleteAudioId && confirm(`确定删除录音记录 ${deleteAudioId}？`)) {
       deleteById(state.audio, deleteAudioId);
       deleteAudioBlob(deleteAudioId);
-      if (audioObjectUrls.has(deleteAudioId)) {
-        URL.revokeObjectURL(audioObjectUrls.get(deleteAudioId));
-        audioObjectUrls.delete(deleteAudioId);
-      }
       saveState();
     }
   });
@@ -1375,8 +1520,22 @@ function initEvents() {
   $("#addIssueBtn").addEventListener("click", () => $("#issueForm").scrollIntoView({ behavior: "smooth" }));
 }
 
-initNav();
-initEvents();
-renderQuerySelects();
-renderLoginRoleOptions();
-renderAll();
+async function bootstrap() {
+  initNav();
+  initEvents();
+  renderQuerySelects();
+  renderLoginRoleOptions();
+  renderAll();
+  showSyncStatus("saving", "加载中…");
+  try {
+    await hydrateFromServer();
+    showSyncStatus("ok");
+  } catch (err) {
+    console.error(err);
+    showSyncStatus("offline", "无法连接服务器，先以本地模式工作。");
+  }
+  if (pollTimer) clearInterval(pollTimer);
+  pollTimer = setInterval(pollForUpdates, POLL_INTERVAL_MS);
+}
+
+bootstrap();
