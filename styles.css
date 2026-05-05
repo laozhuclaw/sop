@@ -453,6 +453,10 @@ textarea {
   font-weight: 650;
 }
 
+input[type="file"] {
+  padding: 8px;
+}
+
 textarea {
   min-height: 92px;
   resize: vertical;
@@ -527,6 +531,22 @@ textarea {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+}
+
+.audio-cell {
+  min-width: 260px;
+}
+
+.audio-cell audio {
+  width: 250px;
+  max-width: 100%;
+}
+
+.muted-text,
+.audio-loading {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 900;
 }
 
 .table-wrap {

@@ -1,4 +1,6 @@
 const STORAGE_KEY = "aicp-sop-training-v1";
+const AUDIO_DB_NAME = "aicp-sop-audio-db";
+const AUDIO_STORE_NAME = "audioFiles";
 const EMPTY_USER = {
   name: "",
   phone: "",
@@ -202,6 +204,56 @@ const sceneQuery = {
   owner: "",
   keyword: "",
 };
+const audioObjectUrls = new Map();
+
+function openAudioDb() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(AUDIO_DB_NAME, 1);
+    request.onupgradeneeded = () => {
+      request.result.createObjectStore(AUDIO_STORE_NAME, { keyPath: "id" });
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+async function saveAudioBlob(id, file) {
+  if (!file || !file.size) return null;
+  const db = await openAudioDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(AUDIO_STORE_NAME, "readwrite");
+    tx.objectStore(AUDIO_STORE_NAME).put({
+      id,
+      blob: file,
+      fileName: normalizeMp3(file.name),
+      mimeType: file.type || "audio/mpeg",
+      size: file.size,
+      updatedAt: new Date().toISOString(),
+    });
+    tx.oncomplete = () => resolve({ fileName: normalizeMp3(file.name), size: file.size });
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+async function getAudioBlob(id) {
+  const db = await openAudioDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(AUDIO_STORE_NAME, "readonly");
+    const request = tx.objectStore(AUDIO_STORE_NAME).get(id);
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+async function deleteAudioBlob(id) {
+  const db = await openAudioDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(AUDIO_STORE_NAME, "readwrite");
+    tx.objectStore(AUDIO_STORE_NAME).delete(id);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
 
 function loadState() {
   const saved = localStorage.getItem(STORAGE_KEY);
@@ -307,6 +359,7 @@ function renderAll() {
   renderDictionaries();
   fillSummary();
   renderLoginState();
+  hydrateAudioPlayers();
 }
 
 function renderKpis() {
@@ -477,6 +530,7 @@ const audioFields = [
   ["summary", "大模型分析摘要", "textarea", "field-wide"],
   ["devSupport", "开发数据支撑点", "textarea", "field-wide"],
   ["action", "建议动作", "textarea", "field-wide"],
+  ["audioFile", "上传mp3文件", "file", "field-wide"],
   ["status", "状态", "selectAudioStatus"],
 ];
 
@@ -504,10 +558,10 @@ function createForm(form, fields, submitLabel, onSubmit) {
     <button class="ghost" type="button" data-cancel-edit hidden>取消修改</button>
   `;
   form.append(action);
-  form.addEventListener("submit", (event) => {
+  form.addEventListener("submit", async (event) => {
     event.preventDefault();
     const data = Object.fromEntries(new FormData(form));
-    onSubmit(data);
+    await onSubmit(data);
     form.reset();
     form.dataset.editingId = "";
     form.querySelector("[data-cancel-edit]").hidden = true;
@@ -524,6 +578,9 @@ function createForm(form, fields, submitLabel, onSubmit) {
 function fieldMarkup(name, label, type = "text", className = "") {
   if (type === "textarea") {
     return `<label class="${className}"><span>${label}</span><textarea name="${name}"></textarea></label>`;
+  }
+  if (type === "file") {
+    return `<label class="${className}"><span>${label}</span><input name="${name}" type="file" accept="audio/mpeg,audio/mp3,.mp3" /></label>`;
   }
   if (type === "number") {
     return `<label class="${className}"><span>${label}</span><input name="${name}" type="number" min="0" step="1" /></label>`;
@@ -597,9 +654,10 @@ function recordFromForm(data) {
 
 function audioFromForm(data) {
   const scene = getScene(data.sceneId);
+  const uploadedFile = data.audioFile && data.audioFile.size ? data.audioFile : null;
   return {
     id: data.id || `AUD-${String(state.audio.length + 1).padStart(3, "0")}`,
-    audioName: normalizeMp3(data.audioName || `${scene.id}_${data.round || 1}.mp3`),
+    audioName: normalizeMp3(data.audioName || uploadedFile?.name || `${scene.id}_${data.round || 1}.mp3`),
     sceneId: data.sceneId,
     round: data.round || "1",
     target: scene.target,
@@ -614,6 +672,9 @@ function audioFromForm(data) {
     devSupport: data.devSupport || scene.devSupport,
     action: data.action || "",
     status: data.status || "待上传",
+    hasAudioFile: uploadedFile ? true : Boolean(data.hasAudioFile),
+    audioFileSize: data.audioFileSize || "",
+    audioUploadedAt: data.audioUploadedAt || "",
     ...currentUserFields(),
     note: "",
   };
@@ -679,6 +740,9 @@ function renderAudio() {
         <tr data-audio-id="${audio.id}">
           <td>${audio.id}</td>
           <td>${escapeHtml(audio.audioName)}</td>
+          <td class="audio-cell" data-audio-player="${audio.id}">
+            ${audio.hasAudioFile ? '<span class="audio-loading">加载中</span>' : '<span class="muted-text">未上传</span>'}
+          </td>
           <td>${audio.sceneId}<br />${escapeHtml(audio.target)}</td>
           <td>${audio.round}</td>
           <td>${escapeHtml(audio.keywords)}</td>
@@ -693,6 +757,30 @@ function renderAudio() {
       `,
     )
     .join("");
+}
+
+async function hydrateAudioPlayers() {
+  const cells = $$("[data-audio-player]");
+  await Promise.all(
+    cells.map(async (cell) => {
+      const id = cell.dataset.audioPlayer;
+      const audio = state.audio.find((item) => item.id === id);
+      if (!audio?.hasAudioFile) return;
+      try {
+        const stored = await getAudioBlob(id);
+        if (!stored?.blob) {
+          cell.innerHTML = '<span class="muted-text">文件缺失</span>';
+          return;
+        }
+        if (audioObjectUrls.has(id)) URL.revokeObjectURL(audioObjectUrls.get(id));
+        const url = URL.createObjectURL(stored.blob);
+        audioObjectUrls.set(id, url);
+        cell.innerHTML = `<audio controls preload="metadata" src="${url}"></audio>`;
+      } catch {
+        cell.innerHTML = '<span class="muted-text">无法加载</span>';
+      }
+    }),
+  );
 }
 
 function renderIssues() {
@@ -894,7 +982,7 @@ function exportJson() {
 
 function exportCsv() {
   const rows = [
-    ["类型", "ID", "场景ID", "目标场景", "录音文件", "关键词", "开发支撑点", "状态/结果", "填写人", "手机号", "单位"],
+    ["类型", "ID", "场景ID", "目标场景", "录音文件", "关键词", "开发支撑点", "状态/结果", "填写人", "手机号", "单位", "本地音频"],
     ...state.scenes.map((item) => [
       "场景清单",
       item.id,
@@ -907,6 +995,7 @@ function exportCsv() {
       item.updatedByName || "",
       item.updatedByPhone || "",
       item.updatedByUnit || "",
+      "",
     ]),
     ...state.records.map((item) => [
       "现场记录",
@@ -920,6 +1009,7 @@ function exportCsv() {
       item.collectorName || "",
       item.collectorPhone || "",
       item.collectorUnit || "",
+      "",
     ]),
     ...state.audio.map((item) => [
       "录音关键词",
@@ -933,6 +1023,7 @@ function exportCsv() {
       item.collectorName || "",
       item.collectorPhone || "",
       item.collectorUnit || "",
+      item.hasAudioFile ? "已上传" : "未上传",
     ]),
     ...state.issues.map((item) => [
       "问题需求",
@@ -946,6 +1037,7 @@ function exportCsv() {
       item.collectorName || "",
       item.collectorPhone || "",
       item.collectorUnit || "",
+      "",
     ]),
     ...Object.entries(state.dictionaries).map(([key, values]) => [
       "字典表",
@@ -954,6 +1046,7 @@ function exportCsv() {
       dictionaryLabels[key] || key,
       "",
       values.join(";"),
+      "",
       "",
       "",
       "",
@@ -1034,9 +1127,23 @@ function initEvents() {
     saveState();
   });
 
-  createForm($("#audioForm"), audioFields, "保存录音关键词", (data) => {
+  createForm($("#audioForm"), audioFields, "保存录音关键词", async (data) => {
     const editingId = $("#audioForm").dataset.editingId;
-    upsertById(state.audio, editingId, audioFromForm({ ...data, id: editingId }));
+    const previous = state.audio.find((item) => item.id === editingId);
+    const audio = audioFromForm({
+      ...data,
+      id: editingId,
+      hasAudioFile: previous?.hasAudioFile || false,
+      audioFileSize: previous?.audioFileSize || "",
+      audioUploadedAt: previous?.audioUploadedAt || "",
+    });
+    if (data.audioFile?.size) {
+      const stored = await saveAudioBlob(audio.id, data.audioFile);
+      audio.hasAudioFile = true;
+      audio.audioFileSize = stored?.size || data.audioFile.size;
+      audio.audioUploadedAt = new Date().toISOString();
+    }
+    upsertById(state.audio, editingId, audio);
     saveState();
   });
 
@@ -1153,6 +1260,11 @@ function initEvents() {
     const deleteAudioId = event.target.dataset.deleteAudio;
     if (deleteAudioId && confirm(`确定删除录音记录 ${deleteAudioId}？`)) {
       deleteById(state.audio, deleteAudioId);
+      deleteAudioBlob(deleteAudioId);
+      if (audioObjectUrls.has(deleteAudioId)) {
+        URL.revokeObjectURL(audioObjectUrls.get(deleteAudioId));
+        audioObjectUrls.delete(deleteAudioId);
+      }
       saveState();
     }
   });
