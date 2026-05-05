@@ -4,11 +4,22 @@
 // stays "logged in" across reloads.
 const API_BASE = "api";
 const LOCAL_USER_KEY = "aicp-sop-current-user-v1";
+const DEFAULT_WORK_DATE = "2026-05-06";
 let stateVersion = 0;
 let lastSyncedAt = "";
 let saveQueue = Promise.resolve();
 let pollTimer = null;
 const POLL_INTERVAL_MS = 4000;
+
+function todayKey() {
+  const date = new Date();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${date.getFullYear()}-${month}-${day}`;
+}
+
+let activeScheduleDate = todayKey();
+let activeSummaryDate = todayKey();
 
 function apiUrl(path) {
   return `${API_BASE}/${path.replace(/^\/+/, "")}`;
@@ -233,6 +244,8 @@ const initialData = {
   currentUser: structuredClone(EMPTY_USER),
   users: structuredClone(defaultUsers),
   dictionaries: structuredClone(initialDictionaries),
+  dailySchedules: {},
+  dailySummaries: {},
   summary: {
     completed: "",
     topAudio: "",
@@ -399,6 +412,18 @@ function mergeStates(localData, serverData) {
     for (const u of localData.users || []) byKey.set(u.phone || u.name, u);
     merged.users = Array.from(byKey.values());
   }
+  if (localData.dailySchedules || serverData.dailySchedules) {
+    merged.dailySchedules = {
+      ...(serverData.dailySchedules || {}),
+      ...(localData.dailySchedules || {}),
+    };
+  }
+  if (localData.dailySummaries || serverData.dailySummaries) {
+    merged.dailySummaries = {
+      ...(serverData.dailySummaries || {}),
+      ...(localData.dailySummaries || {}),
+    };
+  }
   return merged;
 }
 
@@ -421,7 +446,57 @@ function normalizeState(saved) {
   merged.dictionaries.sceneTags = uniqueList(["测试数据", ...(merged.dictionaries.sceneTags || [])]);
   merged.currentUser = { ...EMPTY_USER, ...(saved.currentUser || {}) };
   merged.users = mergeUsers(defaultUsers, saved.users || []);
+  merged.dailySchedules = { ...(saved.dailySchedules || {}) };
+  merged.dailySummaries = { ...(saved.dailySummaries || {}) };
+  if (!merged.dailySchedules[DEFAULT_WORK_DATE]) {
+    merged.dailySchedules[DEFAULT_WORK_DATE] = structuredClone(saved.schedule || base.schedule || []);
+  }
+  if (!merged.dailySummaries[DEFAULT_WORK_DATE]) {
+    merged.dailySummaries[DEFAULT_WORK_DATE] = { ...base.summary, ...(saved.summary || {}) };
+  }
+  merged.schedule = getScheduleForDate(DEFAULT_WORK_DATE, merged);
+  merged.summary = getSummaryForDate(DEFAULT_WORK_DATE, merged);
   return merged;
+}
+
+function cloneScheduleTemplate(source = initialData.schedule) {
+  return structuredClone(source || []).map((row) => {
+    const next = Array.isArray(row) ? [...row] : [];
+    if (next.length >= 8) next[7] = "未开始";
+    return next;
+  });
+}
+
+function emptySummary() {
+  return {
+    completed: "",
+    topAudio: "",
+    aiGap: "",
+    blocker: "",
+    rerun: "",
+    next: "",
+  };
+}
+
+function getScheduleForDate(date = activeScheduleDate, source = state) {
+  if (!source.dailySchedules) source.dailySchedules = {};
+  if (!source.dailySchedules[date]) {
+    source.dailySchedules[date] = cloneScheduleTemplate(source.dailySchedules[DEFAULT_WORK_DATE] || source.schedule || initialData.schedule);
+  }
+  return source.dailySchedules[date];
+}
+
+function getSummaryForDate(date = activeSummaryDate, source = state) {
+  if (!source.dailySummaries) source.dailySummaries = {};
+  if (!source.dailySummaries[date]) source.dailySummaries[date] = emptySummary();
+  return source.dailySummaries[date];
+}
+
+function syncLegacyDailyFields(date) {
+  if (date === DEFAULT_WORK_DATE) {
+    state.schedule = getScheduleForDate(DEFAULT_WORK_DATE);
+    state.summary = getSummaryForDate(DEFAULT_WORK_DATE);
+  }
 }
 
 function mergeUsers(...groups) {
@@ -659,6 +734,7 @@ function escapeHtml(value = "") {
 }
 
 function renderAll() {
+  syncDateInputs();
   renderKpis();
   renderSchedule();
   renderSceneQuery();
@@ -673,6 +749,13 @@ function renderAll() {
   hydrateAudioPlayers();
 }
 
+function syncDateInputs() {
+  const scheduleDate = $("#scheduleDate");
+  const summaryDate = $("#summaryDate");
+  if (scheduleDate && scheduleDate.value !== activeScheduleDate) scheduleDate.value = activeScheduleDate;
+  if (summaryDate && summaryDate.value !== activeSummaryDate) summaryDate.value = activeSummaryDate;
+}
+
 function renderKpis() {
   $("#kpiScenes").textContent = state.scenes.length;
   $("#kpiRecords").textContent = state.records.length;
@@ -682,7 +765,8 @@ function renderKpis() {
 }
 
 function renderSchedule() {
-  $("#scheduleBody").innerHTML = state.schedule
+  const schedule = getScheduleForDate(activeScheduleDate);
+  $("#scheduleBody").innerHTML = schedule
     .map((row, index) => ({ row, index }))
     .filter(({ row }) => matchesQuery(row, filters.schedule))
     .map(
@@ -1462,12 +1546,13 @@ function syncFormOptions() {
 }
 
 function fillSummary() {
-  $("#summaryCompleted").value = state.summary.completed || "";
-  $("#summaryTopAudio").value = state.summary.topAudio || "";
-  $("#summaryAiGap").value = state.summary.aiGap || "";
-  $("#summaryBlocker").value = state.summary.blocker || "";
-  $("#summaryRerun").value = state.summary.rerun || "";
-  $("#summaryNext").value = state.summary.next || "";
+  const summary = getSummaryForDate(activeSummaryDate);
+  $("#summaryCompleted").value = summary.completed || "";
+  $("#summaryTopAudio").value = summary.topAudio || "";
+  $("#summaryAiGap").value = summary.aiGap || "";
+  $("#summaryBlocker").value = summary.blocker || "";
+  $("#summaryRerun").value = summary.rerun || "";
+  $("#summaryNext").value = summary.next || "";
 }
 
 function csvEscape(value) {
@@ -1570,6 +1655,49 @@ function exportCsv() {
       item.phone,
       item.unit,
       item.role,
+      "",
+      "",
+    ]),
+    ...Object.entries(state.dailySchedules || {}).flatMap(([date, schedule]) =>
+      (schedule || []).map((row, index) => [
+        "演练日程",
+        `${date}-${index + 1}`,
+        row[2] || "",
+        row[3] || "",
+        "",
+        "",
+        date,
+        [row[0], row[1], row[4], row[5], row[6]].filter(Boolean).join(";"),
+        row[6] || "",
+        row[7] || "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+      ]),
+    ),
+    ...Object.entries(state.dailySummaries || {}).map(([date, item]) => [
+      "当日总结",
+      date,
+      "",
+      `${date} 当日总结`,
+      "",
+      "",
+      date,
+      item.topAudio || "",
+      [
+        item.aiGap ? `AI能力:${item.aiGap}` : "",
+        item.blocker ? `流程卡点:${item.blocker}` : "",
+        item.rerun ? `复跑场景:${item.rerun}` : "",
+        item.next ? `次日动作:${item.next}` : "",
+      ].filter(Boolean).join("；"),
+      item.completed || "",
+      "",
+      "",
+      "",
+      "",
       "",
       "",
     ]),
@@ -1709,7 +1837,7 @@ function initEvents() {
   });
 
   $("#saveSummaryBtn").addEventListener("click", async () => {
-    state.summary = {
+    state.dailySummaries[activeSummaryDate] = {
       completed: $("#summaryCompleted").value,
       topAudio: $("#summaryTopAudio").value,
       aiGap: $("#summaryAiGap").value,
@@ -1717,7 +1845,8 @@ function initEvents() {
       rerun: $("#summaryRerun").value,
       next: $("#summaryNext").value,
     };
-    await saveState("当日复盘摘要已提交并同步。");
+    syncLegacyDailyFields(activeSummaryDate);
+    await saveState(`${activeSummaryDate} 复盘摘要已提交并同步。`);
   });
 
   $("#exportJsonBtn").addEventListener("click", exportJson);
@@ -1761,6 +1890,18 @@ function initEvents() {
     });
   });
 
+  $("#scheduleDate")?.addEventListener("change", (event) => {
+    activeScheduleDate = event.target.value || DEFAULT_WORK_DATE;
+    getScheduleForDate(activeScheduleDate);
+    renderSchedule();
+  });
+
+  $("#summaryDate")?.addEventListener("change", (event) => {
+    activeSummaryDate = event.target.value || DEFAULT_WORK_DATE;
+    getSummaryForDate(activeSummaryDate);
+    fillSummary();
+  });
+
   [
     ["#sceneSearch", "text"],
     ["#sceneTypeQuery", "type"],
@@ -1788,8 +1929,9 @@ function initEvents() {
   $("#scheduleBody").addEventListener("change", (event) => {
     const index = event.target.dataset.scheduleIndex;
     if (index !== undefined) {
-      state.schedule[Number(index)][7] = event.target.value;
-      saveState("日程状态已更新并同步。");
+      getScheduleForDate(activeScheduleDate)[Number(index)][7] = event.target.value;
+      syncLegacyDailyFields(activeScheduleDate);
+      saveState(`${activeScheduleDate} 日程状态已更新并同步。`);
     }
   });
 

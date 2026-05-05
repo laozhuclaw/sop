@@ -28,6 +28,9 @@ browser ───┘                                       └─ data/uploads/<
 - Every browser keeps its own `currentUser` in localStorage but everything
   else (scenes, records, audio metadata, issues, dictionaries, users) is
   on the server.
+- Multi-day drill data is keyed by date in `dailySchedules` and
+  `dailySummaries`; legacy `schedule` / `summary` remain as the
+  2026-05-06 compatibility view.
 - Every state write goes through `PUT /api/state` with
   `{data, expectedVersion}`. Mismatched versions get 409 with the
   server's current data; the frontend merges (id-keyed; local edits win
@@ -46,6 +49,7 @@ browser ───┘                                       └─ data/uploads/<
 | `846c1e9` … `2c61bd0` | Codex iteration: submitter field, sample data, people-list CRUD, mp4 video uploads, deploy fix. |
 | `ba93e0f` | **Security hardening**: upload mimetype allowlist, force canonical Content-Type on response, `X-Content-Type-Options: nosniff` + CSP, sanitise stored filename. Closes a stored-XSS vector. Also empties `initialData.records/audio/issues` to stop sample-data from being silently re-uploaded into the canonical state. |
 | `f49076c` | `.gitignore` for `.aicp-admin-token` and `server/data`. |
+| pending after `b83d5ee` | Daily schedule + summary support via date-keyed shared state. |
 
 `HANDOFF.md` (this file) is the fresh part.
 

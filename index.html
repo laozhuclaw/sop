@@ -156,10 +156,14 @@
           <div class="panel-head">
             <div>
               <h2>演练日程</h2>
-              <p>按 Claude 模板的日程口径推进，状态会保存在本地。</p>
+              <p>按日期维护每天的演练安排和推进状态，适合连续多天穿越。</p>
             </div>
           </div>
           <div class="toolbar">
+            <label>
+              <span>日程日期</span>
+              <input id="scheduleDate" type="date" />
+            </label>
             <label>
               <span>查询日程</span>
               <input id="scheduleSearch" placeholder="输入时间、场景ID、地点、牵头人" />
@@ -427,8 +431,14 @@
           <div class="panel-head">
             <div>
               <h2>当日总结</h2>
-              <p>收工前 15 分钟填写，让数据交付和次日优化有明确结论。</p>
+              <p>每天收工前 15 分钟填写，让数据交付和次日优化有明确结论。</p>
             </div>
+          </div>
+          <div class="toolbar">
+            <label>
+              <span>总结日期</span>
+              <input id="summaryDate" type="date" />
+            </label>
           </div>
           <div class="summary-grid">
             <label>
