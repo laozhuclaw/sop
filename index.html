@@ -60,6 +60,7 @@
         <a href="#audio" data-view-link="audio">录音关键词</a>
         <a href="#issues" data-view-link="issues">问题需求</a>
         <a href="#dictionary" data-view-link="dictionary">字典表</a>
+        <a href="#help" data-view-link="help">使用说明</a>
         <a href="#summary" data-view-link="summary">当日总结</a>
       </nav>
 
@@ -292,9 +293,13 @@
           <div class="panel-head">
             <div>
               <h2>录音文件与关键词</h2>
-              <p>每个 .mp3 文件一行，用于大模型转写、分析和训练检索。</p>
+              <p>每个 .mp3 文件一行，用于大模型转写、分析和训练检索。支持从本地选择录音文件，保存后可在线播放和下载。</p>
             </div>
             <button type="button" id="addAudioBtn">新增录音</button>
+          </div>
+          <div class="notice-strip">
+            <strong>本地录音上传：</strong>
+            <span>点击“新增录音”，在“上传mp3文件”选择本地录音，保存后音频会存入当前浏览器本地数据库，并在下方表格中显示播放器和下载入口。</span>
           </div>
           <form id="audioForm" class="entry-form"></form>
           <div class="toolbar">
@@ -411,6 +416,53 @@
           </div>
           <div class="summary-actions">
             <button id="saveSummaryBtn" type="button">保存总结</button>
+          </div>
+        </section>
+      </section>
+
+      <section id="help" class="view" data-view="help">
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>使用说明</h2>
+              <p>现场人员按这个流程采集 SOP 穿越数据，开发人员按这个流程发布新版本。</p>
+            </div>
+          </div>
+          <div class="help-grid">
+            <article>
+              <h3>1. 登录人员</h3>
+              <p>进入页面后先选择默认人员或手工填写姓名、手机号、单位和角色。后续新增的场景、现场记录、录音和问题都会自动带上当前人员。</p>
+            </article>
+            <article>
+              <h3>2. 场景维护</h3>
+              <p>在“场景清单”里可以新增、查询、修改和删除场景。重点维护目标场景、场景描述、录音文件名、关键词、需采集数据和开发数据支撑点。</p>
+            </article>
+            <article>
+              <h3>3. 现场记录</h3>
+              <p>每跑一轮穿越，在“现场记录”新增一条。录音文件名要和录音关键词里的文件名保持一致，便于后续用大模型分析。</p>
+            </article>
+            <article>
+              <h3>4. 录音上传、播放和下载</h3>
+              <p>在“录音关键词”点击新增录音，选择本地 .mp3 文件并保存。保存后可以在表格中直接播放，也可以点击下载。音频文件保存在当前浏览器本地数据库，不会进入 CSV。</p>
+            </article>
+            <article>
+              <h3>5. 问题与字典</h3>
+              <p>现场发现的知识、流程、话术、接口问题记录到“问题需求”。下拉选项在“字典表”维护，每行一个选项，保存后全站同步。</p>
+            </article>
+            <article>
+              <h3>6. 数据导出</h3>
+              <p>右上角支持导出 JSON 和 CSV。JSON 用于完整备份浏览器里的结构化数据，CSV 用于给团队汇总分析。音频文件需通过页面中的下载入口单独保存。</p>
+            </article>
+            <article>
+              <h3>7. 本地修改后发布</h3>
+              <p>本地工作目录是 /Users/zhujmac/AICP/sop/console。修改完成并检查后，执行部署脚本即可同步到阿里云服务器。</p>
+              <pre><code>cd /Users/zhujmac/AICP/sop/console
+SSHPASS='服务器密码' ./deploy.sh</code></pre>
+            </article>
+            <article>
+              <h3>8. 线上地址</h3>
+              <p>部署完成后访问 http://47.102.216.22/sop/。如果页面没有更新，先强制刷新浏览器，再检查 Nginx 是否已重载。</p>
+            </article>
           </div>
         </section>
       </section>

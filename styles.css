@@ -527,6 +527,24 @@ textarea {
   min-width: 1080px;
 }
 
+.notice-strip {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  color: var(--navy);
+  background: var(--blue-soft);
+  font-weight: 800;
+}
+
+.notice-strip span {
+  color: var(--ink);
+  font-weight: 650;
+}
+
 .row-actions {
   display: flex;
   gap: 8px;
@@ -641,6 +659,39 @@ tbody tr:hover {
   white-space: pre;
 }
 
+.help-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.help-grid article {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 16px;
+  background: #fbfdff;
+}
+
+.help-grid h3 {
+  color: var(--navy);
+  font-size: 18px;
+}
+
+.help-grid p {
+  margin: 8px 0 0;
+  color: var(--muted);
+}
+
+.help-grid pre {
+  overflow: auto;
+  border-radius: 8px;
+  padding: 12px;
+  margin: 10px 0 0;
+  color: #fff;
+  background: #123e66;
+  font-size: 13px;
+}
+
 .summary-actions {
   margin-top: 16px;
 }
@@ -671,6 +722,7 @@ tbody tr:hover {
 
   .scene-meta,
   .scene-row,
+  .help-grid,
   .dictionary-grid {
     grid-template-columns: 1fr;
   }
