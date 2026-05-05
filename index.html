@@ -186,10 +186,58 @@
             <button type="button" id="addSceneBtn">新增场景</button>
           </div>
           <form id="sceneForm" class="entry-form"></form>
-          <div class="toolbar">
+          <section class="query-panel" aria-label="场景查询">
+            <div class="query-head">
+              <div>
+                <h3>场景查询</h3>
+                <p>支持按场景ID、类型、状态、负责人、关键词组合查询。</p>
+              </div>
+              <button class="ghost" type="button" id="clearSceneQueryBtn">清空查询</button>
+            </div>
+            <div class="query-grid">
+              <label>
+                <span>场景ID/目标场景</span>
+                <input id="sceneSearch" placeholder="如 BZ-001、宽带、投诉" />
+              </label>
+              <label>
+                <span>场景类型</span>
+                <select id="sceneTypeQuery"></select>
+              </label>
+              <label>
+                <span>状态</span>
+                <select id="sceneStatusQuery"></select>
+              </label>
+              <label>
+                <span>负责人</span>
+                <input id="sceneOwnerQuery" placeholder="如 邵新、杨浩" />
+              </label>
+              <label class="field-wide">
+                <span>关键词/开发支撑点</span>
+                <input id="sceneKeywordQuery" placeholder="如 断网、FTTR、多意图、费用" />
+              </label>
+            </div>
+            <div class="table-wrap query-table">
+              <table>
+                <thead>
+                  <tr>
+                    <th>场景ID</th>
+                    <th>类型</th>
+                    <th>目标场景</th>
+                    <th>负责人</th>
+                    <th>状态</th>
+                    <th>录音文件</th>
+                    <th>关键词</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody id="sceneQueryBody"></tbody>
+              </table>
+            </div>
+          </section>
+          <div class="toolbar compact-toolbar">
             <label>
-              <span>查询场景</span>
-              <input id="sceneSearch" placeholder="输入场景ID、类型、目标场景、关键词、负责人" />
+              <span>卡片快速过滤</span>
+              <input id="sceneCardSearch" placeholder="输入任意场景内容，过滤下方可编辑卡片" />
             </label>
           </div>
           <div id="sceneGrid" class="scene-grid"></div>

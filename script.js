@@ -189,10 +189,18 @@ const initialData = {
 let state = loadState();
 const filters = {
   schedule: "",
-  scenes: "",
+  sceneCards: "",
   records: "",
   audio: "",
   issues: "",
+};
+
+const sceneQuery = {
+  text: "",
+  type: "",
+  status: "",
+  owner: "",
+  keyword: "",
 };
 
 function loadState() {
@@ -291,6 +299,7 @@ function escapeHtml(value = "") {
 function renderAll() {
   renderKpis();
   renderSchedule();
+  renderSceneQuery();
   renderScenes();
   renderRecords();
   renderAudio();
@@ -333,7 +342,7 @@ function renderSchedule() {
 
 function renderScenes() {
   $("#sceneGrid").innerHTML = state.scenes
-    .filter((scene) => matchesQuery(scene, filters.scenes))
+    .filter((scene) => matchesQuery(scene, filters.sceneCards))
     .map(
       (scene) => `
         <article class="scene-card" data-scene-card="${scene.id}">
@@ -367,6 +376,54 @@ function renderScenes() {
             <button class="ghost danger" type="button" data-delete-scene="${scene.id}">删除场景</button>
           </div>
         </article>
+      `,
+    )
+    .join("");
+}
+
+function sceneMatchesAdvancedQuery(scene) {
+  const basicHit = matchesQuery(
+    {
+      id: scene.id,
+      type: scene.type,
+      target: scene.target,
+      description: scene.description,
+      audioName: scene.audioName,
+    },
+    sceneQuery.text,
+  );
+  const typeHit = !sceneQuery.type || scene.type === sceneQuery.type;
+  const statusHit = !sceneQuery.status || scene.status === sceneQuery.status;
+  const ownerHit = matchesQuery({ owner: scene.owner }, sceneQuery.owner);
+  const keywordHit = matchesQuery(
+    {
+      keywords: scene.keywords,
+      dataNeeded: scene.dataNeeded,
+      devSupport: scene.devSupport,
+      note: scene.note,
+    },
+    sceneQuery.keyword,
+  );
+  return basicHit && typeHit && statusHit && ownerHit && keywordHit;
+}
+
+function renderSceneQuery() {
+  const body = $("#sceneQueryBody");
+  if (!body) return;
+  body.innerHTML = state.scenes
+    .filter(sceneMatchesAdvancedQuery)
+    .map(
+      (scene) => `
+        <tr>
+          <td>${scene.id}</td>
+          <td>${escapeHtml(scene.type)}</td>
+          <td>${escapeHtml(scene.target)}</td>
+          <td>${escapeHtml(scene.owner)}</td>
+          <td><span class="status ${statusClass(scene.status)}">${escapeHtml(scene.status)}</span></td>
+          <td>${escapeHtml(scene.audioName)}</td>
+          <td>${escapeHtml(scene.keywords)}</td>
+          <td><button class="small ghost" type="button" data-jump-scene="${scene.id}">修改</button></td>
+        </tr>
       `,
     )
     .join("");
@@ -677,6 +734,22 @@ function renderDictionaries() {
     .join("");
 }
 
+function renderQuerySelects() {
+  const typeSelect = $("#sceneTypeQuery");
+  const statusSelect = $("#sceneStatusQuery");
+  if (!typeSelect || !statusSelect) return;
+  const selectedType = typeSelect.value;
+  const selectedStatus = statusSelect.value;
+  typeSelect.innerHTML = `<option value="">全部类型</option>${dict("sceneTypes")
+    .map((option) => `<option value="${attr(option)}">${escapeHtml(option)}</option>`)
+    .join("")}`;
+  statusSelect.innerHTML = `<option value="">全部状态</option>${dict("statuses")
+    .map((option) => `<option value="${attr(option)}">${escapeHtml(option)}</option>`)
+    .join("")}`;
+  typeSelect.value = selectedType;
+  statusSelect.value = selectedStatus;
+}
+
 function updateForm(form, item) {
   Object.entries(item).forEach(([name, value]) => {
     const field = form.elements[name];
@@ -785,6 +858,7 @@ function syncFormOptions() {
       if (choices.includes(previous)) field.value = previous;
     });
   });
+  renderQuerySelects();
 }
 
 function fillSummary() {
@@ -998,7 +1072,7 @@ function initEvents() {
 
   [
     ["#scheduleSearch", "schedule", renderSchedule],
-    ["#sceneSearch", "scenes", renderScenes],
+    ["#sceneCardSearch", "sceneCards", renderScenes],
     ["#recordSearch", "records", renderRecords],
     ["#audioSearch", "audio", renderAudio],
     ["#issueSearch", "issues", renderIssues],
@@ -1007,6 +1081,29 @@ function initEvents() {
       filters[key] = event.target.value;
       render();
     });
+  });
+
+  [
+    ["#sceneSearch", "text"],
+    ["#sceneTypeQuery", "type"],
+    ["#sceneStatusQuery", "status"],
+    ["#sceneOwnerQuery", "owner"],
+    ["#sceneKeywordQuery", "keyword"],
+  ].forEach(([selector, key]) => {
+    $(selector).addEventListener("input", (event) => {
+      sceneQuery[key] = event.target.value;
+      renderSceneQuery();
+    });
+  });
+
+  $("#clearSceneQueryBtn").addEventListener("click", () => {
+    Object.keys(sceneQuery).forEach((key) => {
+      sceneQuery[key] = "";
+    });
+    ["#sceneSearch", "#sceneTypeQuery", "#sceneStatusQuery", "#sceneOwnerQuery", "#sceneKeywordQuery"].forEach((selector) => {
+      $(selector).value = "";
+    });
+    renderSceneQuery();
   });
 
   $("#scheduleBody").addEventListener("change", (event) => {
@@ -1025,6 +1122,17 @@ function initEvents() {
       deleteById(state.scenes, deleteSceneId);
       saveState();
     }
+  });
+
+  $("#sceneQueryBody").addEventListener("click", (event) => {
+    const sceneId = event.target.dataset.jumpScene;
+    if (!sceneId) return;
+    filters.sceneCards = sceneId;
+    $("#sceneCardSearch").value = sceneId;
+    renderScenes();
+    requestAnimationFrame(() => {
+      document.querySelector(`[data-scene-card="${sceneId}"]`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
   });
 
   $("#recordsBody").addEventListener("click", (event) => {
@@ -1068,4 +1176,5 @@ function initEvents() {
 
 initNav();
 initEvents();
+renderQuerySelects();
 renderAll();

@@ -482,6 +482,47 @@ textarea {
   max-width: 560px;
 }
 
+.compact-toolbar {
+  margin-top: 16px;
+}
+
+.query-panel {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+  background: #f8fbff;
+}
+
+.query-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: flex-start;
+  margin-bottom: 14px;
+}
+
+.query-head h3 {
+  color: var(--navy);
+  font-size: 20px;
+}
+
+.query-head p {
+  margin: 5px 0 0;
+  color: var(--muted);
+}
+
+.query-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.query-table table {
+  min-width: 1080px;
+}
+
 .row-actions {
   display: flex;
   gap: 8px;
@@ -594,6 +635,7 @@ tbody tr:hover {
   .focus-grid,
   .scene-grid,
   .entry-form,
+  .query-grid,
   .summary-grid {
     grid-template-columns: 1fr;
   }
