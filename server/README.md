@@ -22,10 +22,15 @@ everyone sees each other's data within ~4 seconds.
 | `GET`    | `/api/state` | Full state + `version` + `updatedAt`. |
 | `GET`    | `/api/state/version` | Cheap polling endpoint. |
 | `PUT`    | `/api/state` | Body `{data, expectedVersion}`. 409 on stale. |
-| `POST`   | `/api/audio/:id` | Multipart `file=...`. Saves blob + meta. |
-| `GET`    | `/api/audio/:id` | Streams the blob. |
+| `POST`   | `/api/audio/:id` | Multipart `file=...`. **mimetype must be `audio/mpeg`/`audio/mp3`/`application/octet-stream` — anything else returns 415.** Saves blob + meta. |
+| `HEAD`   | `/api/audio/:id` | Headers only (used for size verification after upload). |
+| `GET`    | `/api/audio/:id` | Streams the blob. Always served as `audio/mpeg` with `X-Content-Type-Options: nosniff` and a tight CSP, regardless of what the uploader's meta says. |
 | `DELETE` | `/api/audio/:id` | Removes blob + meta. |
-| `POST`   | `/api/reset` | Wipes state + uploads. Token-gated if `ADMIN_TOKEN` set. |
+| `POST`   | `/api/video/:id` | Same shape as audio, mimetype must be `video/mp4`/`application/mp4`/`application/octet-stream`. |
+| `HEAD`   | `/api/video/:id` | Headers only. |
+| `GET`    | `/api/video/:id` | Streams as `video/mp4` with the same hardening as audio. |
+| `DELETE` | `/api/video/:id` | Removes blob + meta. |
+| `POST`   | `/api/reset` | Wipes state + uploads. **Required:** `X-Admin-Token: <ADMIN_TOKEN>` header (env var); without it, returns 403. |
 
 ## Local development
 ```bash
@@ -39,6 +44,19 @@ To run the smoke tests against a running server:
 ```bash
 BASE=http://127.0.0.1:3091 node smoke-test.mjs
 ```
+
+To run the concurrency stress tests (also work against prod — they
+clean up after themselves):
+```bash
+# State writes: N parallel clients each push entities, expect 0 lost writes.
+BASE=http://127.0.0.1:3091 CLIENTS=16 PER_CLIENT=5 node concurrency-test.mjs
+
+# Audio + video upload contention.
+BASE=http://127.0.0.1:3091 CLIENTS=8 node upload-concurrency-test.mjs
+```
+Both tests use sentinel ids prefixed with `__C` / `__UP` and remove their
+own data on success, so they're safe to fire at production. They are how
+we currently certify "multi-user works".
 
 ## First-time deploy on Aliyun
 
@@ -111,17 +129,45 @@ pins, future connects fail loudly on key change — that is the point).
 
 ## Operational notes
 - **Backups:** `cp -a server/data server/data.bak.$(date +%F-%H%M)` before risky changes.
-- **Audio retention:** uploads are not auto-cleaned. Watch `du -sh server/data/uploads`.
-- **Reset in production:** run `curl -X POST -H "X-Admin-Token: <token>" .../api/reset` —
-  set `ADMIN_TOKEN` in the systemd unit first or anyone with the URL can wipe data.
+- **Audio/video retention:** uploads are not auto-cleaned. Watch `du -sh server/data/uploads server/data/videos`.
+- **Reset in production:** the live server has `ADMIN_TOKEN` set in
+  `/etc/systemd/system/aicp-sop.service`. Without the token the endpoint
+  returns 403. Anyone running the reset must pass it explicitly:
+  `curl -X POST -H "X-Admin-Token: $TOKEN" http://47.102.216.22/sop/api/reset`.
+  The local copy of the token (chmod 600) is at `console/.aicp-admin-token`
+  on the operator's laptop and is gitignored — never commit it.
 - **Logs:** `journalctl -u aicp-sop -f`.
 - **Port:** Node listens on 127.0.0.1:3000 by default. The public path is
   Nginx-only; the Node port should not be exposed to the internet.
 
+## Upload safety (do not regress)
+The audio/video endpoints accept user-supplied bytes and serve them back
+on the same origin. If we trusted the client-sent `Content-Type` we'd be
+one upload away from stored XSS reaching `/api/state`. To stay safe:
+- The upload handler **must** check `req.file.mimetype` against an allowlist.
+  Anything outside the list returns 415 and nothing is written.
+- The GET/HEAD handler **must** force the canonical type (`audio/mpeg` or
+  `video/mp4`), set `X-Content-Type-Options: nosniff`, and a strict CSP.
+  Don't echo `metaInfo.mimeType` back to the client.
+- Stored `fileName` is sanitised (no path separators, no control chars,
+  capped at 200 chars) before being put in `Content-Disposition`.
+- The smoke test asserts on these headers and on the 415 rejection path.
+  If you change upload code, run `node smoke-test.mjs` and confirm both
+  `audio upload rejects text/html` and `video upload rejects text/html`
+  still pass before deploying.
+
 ## Known limitations (still TODO)
 - No HTTPS yet. Add Let's Encrypt + redirect 80→443 before any real PII flows.
-- No auth: anyone with the URL can read/write. Add Nginx Basic Auth or an
-  IP allowlist before sharing the link broadly.
+- No auth on writes: anyone with the URL can `PUT /api/state` or upload to
+  `/api/audio/*` or `/api/video/*`. The XSS-via-mimetype hole is closed,
+  but un-authenticated overwrite/delete is still possible. Add Nginx Basic
+  Auth or an IP allowlist before sharing the link broadly. `/api/reset`
+  is the only endpoint that's currently token-gated.
 - "Last write wins" within a single entity (one person's edit clobbers
   another's edit on the *same* scene). Different entities are merge-safe.
-- Reset endpoint is destructive and only protected by `ADMIN_TOKEN` if set.
+- Video upload uses `multer.memoryStorage()` with a 300 MB limit; a few
+  concurrent large uploads can pressure Node's heap. Switch to
+  `multer.diskStorage()` if you ever raise the limit further.
+- `defaultUsers` in `script.js` still contains real personnel data
+  (names + phones). Consider clearing those once the people-list table
+  is the source of truth in production.
