@@ -28,6 +28,7 @@ const initialDictionaries = {
   impact: ["是", "否", "部分影响"],
   issueStatuses: ["待确认", "待开发", "开发中", "待验收", "已关闭", "暂缓"],
   roles: ["网络", "市场", "装维", "营业厅", "开发"],
+  sceneTags: ["测试数据"],
 };
 
 const dictionaryLabels = {
@@ -42,6 +43,7 @@ const dictionaryLabels = {
   impact: "是否影响演练",
   issueStatuses: "问题状态",
   roles: "角色",
+  sceneTags: "场景标签",
 };
 
 const initialData = {
@@ -279,6 +281,7 @@ function normalizeState(saved) {
     tags: scene.tags || "测试数据",
   }));
   merged.dictionaries = { ...base.dictionaries, ...(saved.dictionaries || {}) };
+  merged.dictionaries.sceneTags = uniqueList(["测试数据", ...(merged.dictionaries.sceneTags || [])]);
   merged.currentUser = { ...EMPTY_USER, ...(saved.currentUser || {}) };
   merged.users = mergeUsers(defaultUsers, saved.users || []);
   return merged;
@@ -296,6 +299,10 @@ function mergeUsers(...groups) {
     }
   });
   return users;
+}
+
+function uniqueList(items) {
+  return Array.from(new Set(items.map((item) => String(item || "").trim()).filter(Boolean)));
 }
 
 function saveState() {
@@ -432,7 +439,16 @@ function renderScenes() {
           <label><span>目标场景</span><input data-scene-field="target" value="${attr(scene.target)}" /></label>
           <label><span>场景描述</span><textarea data-scene-field="description">${escapeHtml(scene.description)}</textarea></label>
           <label><span>录音文件</span><input data-scene-field="audioName" value="${attr(scene.audioName)}" /></label>
-          <label><span>标签</span><input data-scene-field="tags" value="${attr(scene.tags || "测试数据")}" /></label>
+          <div class="scene-row">
+            <label>
+              <span>标签</span>
+              <select data-scene-field="tags">${tagOptions(scene.tags || "测试数据")}</select>
+            </label>
+            <label>
+              <span>新标签</span>
+              <input data-new-scene-tag placeholder="直接编写新标签" />
+            </label>
+          </div>
           <label><span>关键词/触发词</span><textarea data-scene-field="keywords">${escapeHtml(scene.keywords)}</textarea></label>
           <label><span>需采集数据</span><textarea data-scene-field="dataNeeded">${escapeHtml(scene.dataNeeded)}</textarea></label>
           <label><span>开发数据支撑点</span><textarea data-scene-field="devSupport">${escapeHtml(scene.devSupport)}</textarea></label>
@@ -506,12 +522,18 @@ function attr(value = "") {
   return escapeHtml(value).replaceAll("'", "&#39;");
 }
 
+function tagOptions(selected) {
+  const tags = uniqueList(["测试数据", ...dict("sceneTags"), selected].filter(Boolean));
+  return tags.map((tag) => `<option value="${attr(tag)}" ${tag === selected ? "selected" : ""}>${escapeHtml(tag)}</option>`).join("");
+}
+
 const sceneFields = [
   ["id", "场景ID"],
   ["type", "场景类型", "selectSceneType"],
   ["target", "目标场景"],
   ["status", "状态", "selectStatus"],
-  ["tags", "标签"],
+  ["tags", "标签", "selectSceneTag"],
+  ["newTag", "新标签"],
   ["audioName", "录音文件名"],
   ["owner", "负责人"],
   ["description", "场景描述", "textarea", "field-wide"],
@@ -618,6 +640,7 @@ function fieldMarkup(name, label, type = "text", className = "") {
     selectPriority: dict("priorities"),
     selectImpact: dict("impact"),
     selectIssueStatus: dict("issueStatuses"),
+    selectSceneTag: dict("sceneTags"),
   }[type];
   if (selectOptions) {
     return `<label class="${className}"><span>${label}</span><select name="${name}">${selectOptions
@@ -629,6 +652,7 @@ function fieldMarkup(name, label, type = "text", className = "") {
 
 function sceneFromForm(data) {
   const id = String(data.id || "").trim().toUpperCase();
+  const tag = String(data.newTag || data.tags || "测试数据").trim();
   return {
     id,
     type: data.type || dict("sceneTypes")[0] || "",
@@ -640,7 +664,7 @@ function sceneFromForm(data) {
     devSupport: data.devSupport || "",
     owner: data.owner || "",
     status: data.status || dict("statuses")[0] || "",
-    tags: data.tags || "测试数据",
+    tags: tag || "测试数据",
     note: data.note || "",
     updatedByName: state.currentUser?.name || "",
     updatedByPhone: state.currentUser?.phone || "",
@@ -919,6 +943,7 @@ function saveSceneFromForm(data) {
     alert("请先填写场景ID。");
     return;
   }
+  addSceneTag(scene.tags);
   const existingId = $("#sceneForm").dataset.editingId;
   const targetId = existingId || scene.id;
   upsertById(state.scenes, targetId, scene);
@@ -952,12 +977,21 @@ function saveSceneFromCard(sceneId) {
     const key = field.dataset.sceneField;
     scene[key] = key === "audioName" ? normalizeMp3(field.value) : field.value;
   });
+  const newTag = card.querySelector("[data-new-scene-tag]")?.value.trim();
+  if (newTag) scene.tags = newTag;
+  addSceneTag(scene.tags);
   scene.updatedByName = state.currentUser?.name || "";
   scene.updatedByPhone = state.currentUser?.phone || "";
   scene.updatedByUnit = state.currentUser?.unit || "";
   scene.updatedByRole = state.currentUser?.role || "";
   syncLinkedSceneData(sceneId);
   saveState();
+}
+
+function addSceneTag(tag) {
+  const value = String(tag || "").trim();
+  if (!value) return;
+  state.dictionaries.sceneTags = uniqueList([...(state.dictionaries.sceneTags || []), value]);
 }
 
 function saveDictionaries() {
@@ -982,6 +1016,7 @@ function syncFormOptions() {
   const formSpecific = new Map([
     ["sceneForm:type", dict("sceneTypes")],
     ["sceneForm:status", dict("statuses")],
+    ["sceneForm:tags", dict("sceneTags")],
     ["issueForm:type", dict("issueTypes")],
     ["audioForm:status", dict("audioStatuses")],
     ["issueForm:status", dict("issueStatuses")],
