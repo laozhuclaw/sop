@@ -5,13 +5,14 @@ const EMPTY_USER = {
   name: "",
   phone: "",
   unit: "",
+  role: "",
   loginAt: "",
 };
 
 const defaultUsers = [
-  { name: "蔡俊", phone: "", unit: "好活", loginAt: "" },
-  { name: "张明昊", phone: "", unit: "好活", loginAt: "" },
-  { name: "王子寅", phone: "", unit: "好活", loginAt: "" },
+  { name: "蔡俊", phone: "", unit: "好活", role: "开发", loginAt: "" },
+  { name: "张明昊", phone: "", unit: "好活", role: "开发", loginAt: "" },
+  { name: "王子寅", phone: "", unit: "好活", role: "开发", loginAt: "" },
 ];
 
 const initialDictionaries = {
@@ -25,6 +26,7 @@ const initialDictionaries = {
   priorities: ["P0-必须当天解决", "P1-本周解决", "P2-可排期", "P3-观察"],
   impact: ["是", "否", "部分影响"],
   issueStatuses: ["待确认", "待开发", "开发中", "待验收", "已关闭", "暂缓"],
+  roles: ["网络", "市场", "装维", "营业厅", "开发"],
 };
 
 const dictionaryLabels = {
@@ -38,6 +40,7 @@ const dictionaryLabels = {
   priorities: "优先级",
   impact: "是否影响演练",
   issueStatuses: "问题状态",
+  roles: "角色",
 };
 
 const initialData = {
@@ -315,7 +318,7 @@ function matchesQuery(item, query) {
 }
 
 function hasUser() {
-  return Boolean(state.currentUser?.name && state.currentUser?.phone && state.currentUser?.unit);
+  return Boolean(state.currentUser?.name && state.currentUser?.phone && state.currentUser?.unit && state.currentUser?.role);
 }
 
 function currentUserFields() {
@@ -323,6 +326,7 @@ function currentUserFields() {
     collectorName: state.currentUser?.name || "",
     collectorPhone: state.currentUser?.phone || "",
     collectorUnit: state.currentUser?.unit || "",
+    collectorRole: state.currentUser?.role || "",
   };
 }
 
@@ -330,7 +334,7 @@ function renderLoginState() {
   document.body.classList.toggle("login-open", !hasUser());
   $("#loginScreen").hidden = hasUser();
   $("#currentUserPill").textContent = hasUser()
-    ? `${state.currentUser.name}｜${state.currentUser.unit}`
+    ? `${state.currentUser.name}｜${state.currentUser.unit}｜${state.currentUser.role}`
     : "未登录";
 }
 
@@ -623,6 +627,7 @@ function sceneFromForm(data) {
     updatedByName: state.currentUser?.name || "",
     updatedByPhone: state.currentUser?.phone || "",
     updatedByUnit: state.currentUser?.unit || "",
+    updatedByRole: state.currentUser?.role || "",
   };
 }
 
@@ -775,7 +780,10 @@ async function hydrateAudioPlayers() {
         if (audioObjectUrls.has(id)) URL.revokeObjectURL(audioObjectUrls.get(id));
         const url = URL.createObjectURL(stored.blob);
         audioObjectUrls.set(id, url);
-        cell.innerHTML = `<audio controls preload="metadata" src="${url}"></audio>`;
+        cell.innerHTML = `
+          <audio controls preload="metadata" src="${url}"></audio>
+          <a class="download-link" href="${url}" download="${attr(audio.audioName || stored.fileName || `${id}.mp3`)}">下载</a>
+        `;
       } catch {
         cell.innerHTML = '<span class="muted-text">无法加载</span>';
       }
@@ -836,6 +844,16 @@ function renderQuerySelects() {
     .join("")}`;
   typeSelect.value = selectedType;
   statusSelect.value = selectedStatus;
+}
+
+function renderLoginRoleOptions() {
+  const roleSelect = $("#loginForm")?.elements.role;
+  if (!roleSelect) return;
+  const selected = roleSelect.value || state.currentUser?.role || "";
+  roleSelect.innerHTML = dict("roles")
+    .map((role) => `<option value="${attr(role)}">${escapeHtml(role)}</option>`)
+    .join("");
+  if (selected && dict("roles").includes(selected)) roleSelect.value = selected;
 }
 
 function updateForm(form, item) {
@@ -904,6 +922,7 @@ function saveSceneFromCard(sceneId) {
   scene.updatedByName = state.currentUser?.name || "";
   scene.updatedByPhone = state.currentUser?.phone || "";
   scene.updatedByUnit = state.currentUser?.unit || "";
+  scene.updatedByRole = state.currentUser?.role || "";
   syncLinkedSceneData(sceneId);
   saveState();
 }
@@ -947,6 +966,7 @@ function syncFormOptions() {
     });
   });
   renderQuerySelects();
+  renderLoginRoleOptions();
 }
 
 function fillSummary() {
@@ -982,7 +1002,7 @@ function exportJson() {
 
 function exportCsv() {
   const rows = [
-    ["类型", "ID", "场景ID", "目标场景", "录音文件", "关键词", "开发支撑点", "状态/结果", "填写人", "手机号", "单位", "本地音频"],
+    ["类型", "ID", "场景ID", "目标场景", "录音文件", "关键词", "开发支撑点", "状态/结果", "填写人", "手机号", "单位", "角色", "本地音频"],
     ...state.scenes.map((item) => [
       "场景清单",
       item.id,
@@ -995,6 +1015,7 @@ function exportCsv() {
       item.updatedByName || "",
       item.updatedByPhone || "",
       item.updatedByUnit || "",
+      item.updatedByRole || "",
       "",
     ]),
     ...state.records.map((item) => [
@@ -1009,6 +1030,7 @@ function exportCsv() {
       item.collectorName || "",
       item.collectorPhone || "",
       item.collectorUnit || "",
+      item.collectorRole || "",
       "",
     ]),
     ...state.audio.map((item) => [
@@ -1023,6 +1045,7 @@ function exportCsv() {
       item.collectorName || "",
       item.collectorPhone || "",
       item.collectorUnit || "",
+      item.collectorRole || "",
       item.hasAudioFile ? "已上传" : "未上传",
     ]),
     ...state.issues.map((item) => [
@@ -1037,6 +1060,7 @@ function exportCsv() {
       item.collectorName || "",
       item.collectorPhone || "",
       item.collectorUnit || "",
+      item.collectorRole || "",
       "",
     ]),
     ...Object.entries(state.dictionaries).map(([key, values]) => [
@@ -1046,6 +1070,7 @@ function exportCsv() {
       dictionaryLabels[key] || key,
       "",
       values.join(";"),
+      "",
       "",
       "",
       "",
@@ -1083,6 +1108,7 @@ function initEvents() {
     form.elements.name.value = user.name;
     form.elements.phone.value = user.phone || "";
     form.elements.unit.value = user.unit || "好活";
+    form.elements.role.value = user.role || "开发";
     form.elements.phone.focus();
   });
 
@@ -1093,6 +1119,7 @@ function initEvents() {
       name: String(data.name || "").trim(),
       phone: String(data.phone || "").trim(),
       unit: String(data.unit || "").trim(),
+      role: String(data.role || "").trim(),
       loginAt: new Date().toISOString(),
     };
     const existing = state.users.find((user) => user.phone === state.currentUser.phone);
@@ -1109,6 +1136,7 @@ function initEvents() {
     form.elements.name.value = state.currentUser?.name || "";
     form.elements.phone.value = state.currentUser?.phone || "";
     form.elements.unit.value = state.currentUser?.unit || "";
+    form.elements.role.value = state.currentUser?.role || dict("roles")[0] || "";
     document.body.classList.add("login-open");
     $("#loginScreen").hidden = false;
   });
@@ -1289,4 +1317,5 @@ function initEvents() {
 initNav();
 initEvents();
 renderQuerySelects();
+renderLoginRoleOptions();
 renderAll();
