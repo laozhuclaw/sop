@@ -1,0 +1,6 @@
+# Local-only secrets and runtime artefacts.
+.aicp-admin-token
+server/data/
+server/node_modules/
+node_modules/
+.DS_Store
