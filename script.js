@@ -13,7 +13,7 @@ const defaultUsers = [
   { name: "蔡俊", phone: "18500039693", unit: "好活", role: "开发", loginAt: "" },
   { name: "张明昊", phone: "18662678967", unit: "好活", role: "开发", loginAt: "" },
   { name: "王子寅", phone: "13372152239", unit: "好活", role: "开发", loginAt: "" },
-  { name: "邵新", phone: "", unit: "苏州移动 网络部", role: "网络", loginAt: "" },
+  { name: "邵新", phone: "待补充", unit: "苏州移动 网络部", role: "网络", loginAt: "" },
 ];
 
 const initialDictionaries = {
