@@ -106,6 +106,29 @@ img {
   color: var(--muted);
 }
 
+.quick-users {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px;
+  background: #f8fbff;
+}
+
+.quick-users span {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.quick-users button {
+  min-height: 34px;
+  padding: 7px 11px;
+  font-size: 14px;
+}
+
 .login-open .sidebar,
 .login-open .app {
   pointer-events: none;

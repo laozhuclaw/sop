@@ -6,6 +6,12 @@ const EMPTY_USER = {
   loginAt: "",
 };
 
+const defaultUsers = [
+  { name: "蔡俊", phone: "", unit: "好活", loginAt: "" },
+  { name: "张明昊", phone: "", unit: "好活", loginAt: "" },
+  { name: "王子寅", phone: "", unit: "好活", loginAt: "" },
+];
+
 const initialDictionaries = {
   sceneTypes: ["基本保障", "服务", "随销", "异常升级"],
   statuses: ["未开始", "演练中", "通过", "需复盘", "阻塞"],
@@ -168,7 +174,7 @@ const initialData = {
   audio: [],
   issues: [],
   currentUser: structuredClone(EMPTY_USER),
-  users: [],
+  users: structuredClone(defaultUsers),
   dictionaries: structuredClone(initialDictionaries),
   summary: {
     completed: "",
@@ -204,8 +210,19 @@ function normalizeState(saved) {
   const merged = { ...base, ...saved };
   merged.dictionaries = { ...base.dictionaries, ...(saved.dictionaries || {}) };
   merged.currentUser = { ...EMPTY_USER, ...(saved.currentUser || {}) };
-  merged.users = saved.users || [];
+  merged.users = mergeUsers(defaultUsers, saved.users || []);
   return merged;
+}
+
+function mergeUsers(...groups) {
+  const users = [];
+  groups.flat().forEach((user) => {
+    const key = user.phone || `${user.name}-${user.unit}`;
+    if (!users.some((item) => (item.phone || `${item.name}-${item.unit}`) === key)) {
+      users.push({ ...EMPTY_USER, ...user });
+    }
+  });
+  return users;
 }
 
 function saveState() {
@@ -891,6 +908,17 @@ function initNav() {
 }
 
 function initEvents() {
+  $("#loginForm").addEventListener("click", (event) => {
+    const name = event.target.dataset.quickUser;
+    if (!name) return;
+    const user = state.users.find((item) => item.name === name) || { name, phone: "", unit: "好活" };
+    const form = event.currentTarget;
+    form.elements.name.value = user.name;
+    form.elements.phone.value = user.phone || "";
+    form.elements.unit.value = user.unit || "好活";
+    form.elements.phone.focus();
+  });
+
   $("#loginForm").addEventListener("submit", (event) => {
     event.preventDefault();
     const data = Object.fromEntries(new FormData(event.currentTarget));
