@@ -206,6 +206,7 @@ const sceneQuery = {
   type: "",
   status: "",
   owner: "",
+  tag: "",
   keyword: "",
 };
 const audioObjectUrls = new Map();
@@ -261,17 +262,22 @@ async function deleteAudioBlob(id) {
 
 function loadState() {
   const saved = localStorage.getItem(STORAGE_KEY);
-  if (!saved) return structuredClone(initialData);
+  if (!saved) return normalizeState({});
   try {
     return normalizeState(JSON.parse(saved));
   } catch {
-    return structuredClone(initialData);
+    return normalizeState({});
   }
 }
 
 function normalizeState(saved) {
   const base = structuredClone(initialData);
   const merged = { ...base, ...saved };
+  merged.scenes = (merged.scenes || []).map((scene) => ({
+    tags: "测试数据",
+    ...scene,
+    tags: scene.tags || "测试数据",
+  }));
   merged.dictionaries = { ...base.dictionaries, ...(saved.dictionaries || {}) };
   merged.currentUser = { ...EMPTY_USER, ...(saved.currentUser || {}) };
   merged.users = mergeUsers(defaultUsers, saved.users || []);
@@ -308,6 +314,7 @@ function getScene(id) {
     description: "",
     keywords: "",
     devSupport: "",
+    tags: "测试数据",
   };
 }
 
@@ -425,6 +432,7 @@ function renderScenes() {
           <label><span>目标场景</span><input data-scene-field="target" value="${attr(scene.target)}" /></label>
           <label><span>场景描述</span><textarea data-scene-field="description">${escapeHtml(scene.description)}</textarea></label>
           <label><span>录音文件</span><input data-scene-field="audioName" value="${attr(scene.audioName)}" /></label>
+          <label><span>标签</span><input data-scene-field="tags" value="${attr(scene.tags || "测试数据")}" /></label>
           <label><span>关键词/触发词</span><textarea data-scene-field="keywords">${escapeHtml(scene.keywords)}</textarea></label>
           <label><span>需采集数据</span><textarea data-scene-field="dataNeeded">${escapeHtml(scene.dataNeeded)}</textarea></label>
           <label><span>开发数据支撑点</span><textarea data-scene-field="devSupport">${escapeHtml(scene.devSupport)}</textarea></label>
@@ -450,22 +458,25 @@ function sceneMatchesAdvancedQuery(scene) {
       target: scene.target,
       description: scene.description,
       audioName: scene.audioName,
+      tags: scene.tags,
     },
     sceneQuery.text,
   );
   const typeHit = !sceneQuery.type || scene.type === sceneQuery.type;
   const statusHit = !sceneQuery.status || scene.status === sceneQuery.status;
   const ownerHit = matchesQuery({ owner: scene.owner }, sceneQuery.owner);
+  const tagHit = matchesQuery({ tags: scene.tags }, sceneQuery.tag);
   const keywordHit = matchesQuery(
     {
       keywords: scene.keywords,
       dataNeeded: scene.dataNeeded,
       devSupport: scene.devSupport,
       note: scene.note,
+      tags: scene.tags,
     },
     sceneQuery.keyword,
   );
-  return basicHit && typeHit && statusHit && ownerHit && keywordHit;
+  return basicHit && typeHit && statusHit && ownerHit && tagHit && keywordHit;
 }
 
 function renderSceneQuery() {
@@ -481,6 +492,7 @@ function renderSceneQuery() {
           <td>${escapeHtml(scene.target)}</td>
           <td>${escapeHtml(scene.owner)}</td>
           <td><span class="status ${statusClass(scene.status)}">${escapeHtml(scene.status)}</span></td>
+          <td>${escapeHtml(scene.tags || "测试数据")}</td>
           <td>${escapeHtml(scene.audioName)}</td>
           <td>${escapeHtml(scene.keywords)}</td>
           <td><button class="small ghost" type="button" data-jump-scene="${scene.id}">修改</button></td>
@@ -499,6 +511,7 @@ const sceneFields = [
   ["type", "场景类型", "selectSceneType"],
   ["target", "目标场景"],
   ["status", "状态", "selectStatus"],
+  ["tags", "标签"],
   ["audioName", "录音文件名"],
   ["owner", "负责人"],
   ["description", "场景描述", "textarea", "field-wide"],
@@ -627,6 +640,7 @@ function sceneFromForm(data) {
     devSupport: data.devSupport || "",
     owner: data.owner || "",
     status: data.status || dict("statuses")[0] || "",
+    tags: data.tags || "测试数据",
     note: data.note || "",
     updatedByName: state.currentUser?.name || "",
     updatedByPhone: state.currentUser?.phone || "",
@@ -1021,13 +1035,14 @@ function exportJson() {
 
 function exportCsv() {
   const rows = [
-    ["类型", "ID", "场景ID", "目标场景", "录音文件", "关键词", "开发支撑点", "状态/结果", "填写人", "手机号", "单位", "角色", "本地音频"],
+    ["类型", "ID", "场景ID", "目标场景", "录音文件", "标签", "关键词", "开发支撑点", "状态/结果", "填写人", "手机号", "单位", "角色", "本地音频"],
     ...state.scenes.map((item) => [
       "场景清单",
       item.id,
       item.id,
       item.target,
       item.audioName,
+      item.tags || "测试数据",
       item.keywords,
       item.devSupport,
       item.status,
@@ -1043,6 +1058,7 @@ function exportCsv() {
       item.sceneId,
       item.target,
       item.audioName,
+      "",
       item.keywords,
       item.devSupport,
       item.result,
@@ -1058,6 +1074,7 @@ function exportCsv() {
       item.sceneId,
       item.target,
       item.audioName,
+      "",
       item.keywords,
       item.devSupport,
       item.status,
@@ -1073,6 +1090,7 @@ function exportCsv() {
       item.sceneId,
       item.target,
       item.audioName,
+      "",
       item.problem,
       item.evidence,
       item.status,
@@ -1087,6 +1105,7 @@ function exportCsv() {
       key,
       "",
       dictionaryLabels[key] || key,
+      "",
       "",
       values.join(";"),
       "",
@@ -1205,7 +1224,7 @@ function initEvents() {
   $("#resetBtn").addEventListener("click", () => {
     if (confirm("确定重置本地填写数据？场景模板会保留。")) {
       localStorage.removeItem(STORAGE_KEY);
-      state = structuredClone(initialData);
+      state = normalizeState({});
       renderAll();
       syncFormOptions();
     }
@@ -1229,6 +1248,7 @@ function initEvents() {
     ["#sceneTypeQuery", "type"],
     ["#sceneStatusQuery", "status"],
     ["#sceneOwnerQuery", "owner"],
+    ["#sceneTagQuery", "tag"],
     ["#sceneKeywordQuery", "keyword"],
   ].forEach(([selector, key]) => {
     $(selector).addEventListener("input", (event) => {
@@ -1241,7 +1261,7 @@ function initEvents() {
     Object.keys(sceneQuery).forEach((key) => {
       sceneQuery[key] = "";
     });
-    ["#sceneSearch", "#sceneTypeQuery", "#sceneStatusQuery", "#sceneOwnerQuery", "#sceneKeywordQuery"].forEach((selector) => {
+    ["#sceneSearch", "#sceneTypeQuery", "#sceneStatusQuery", "#sceneOwnerQuery", "#sceneTagQuery", "#sceneKeywordQuery"].forEach((selector) => {
       $(selector).value = "";
     });
     renderSceneQuery();

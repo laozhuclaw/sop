@@ -196,7 +196,7 @@
             <div class="query-head">
               <div>
                 <h3>场景查询</h3>
-                <p>支持按场景ID、类型、状态、负责人、关键词组合查询。</p>
+                <p>支持按场景ID、类型、状态、负责人、标签、关键词组合查询。</p>
               </div>
               <button class="ghost" type="button" id="clearSceneQueryBtn">清空查询</button>
             </div>
@@ -217,6 +217,10 @@
                 <span>负责人</span>
                 <input id="sceneOwnerQuery" placeholder="如 邵新、杨浩" />
               </label>
+              <label>
+                <span>标签</span>
+                <input id="sceneTagQuery" placeholder="如 测试数据" />
+              </label>
               <label class="field-wide">
                 <span>关键词/开发支撑点</span>
                 <input id="sceneKeywordQuery" placeholder="如 断网、FTTR、多意图、费用" />
@@ -231,6 +235,7 @@
                     <th>目标场景</th>
                     <th>负责人</th>
                     <th>状态</th>
+                    <th>标签</th>
                     <th>录音文件</th>
                     <th>关键词</th>
                     <th>操作</th>
