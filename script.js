@@ -488,11 +488,31 @@ function hasUser() {
 
 function currentUserFields() {
   return {
+    submitterName: state.currentUser?.name || "",
+    submitterPhone: state.currentUser?.phone || "",
+    submitterUnit: state.currentUser?.unit || "",
+    submitterRole: state.currentUser?.role || "",
     collectorName: state.currentUser?.name || "",
     collectorPhone: state.currentUser?.phone || "",
     collectorUnit: state.currentUser?.unit || "",
     collectorRole: state.currentUser?.role || "",
   };
+}
+
+function submitterText(item) {
+  const name = item.submitterName || item.collectorName || item.updatedByName || "";
+  const unit = item.submitterUnit || item.collectorUnit || item.updatedByUnit || "";
+  const role = item.submitterRole || item.collectorRole || item.updatedByRole || "";
+  return [name, unit, role].filter(Boolean).map(escapeHtml).join("<br />");
+}
+
+function submitterValues(item) {
+  return [
+    item.submitterName || item.collectorName || item.updatedByName || "",
+    item.submitterPhone || item.collectorPhone || item.updatedByPhone || "",
+    item.submitterUnit || item.collectorUnit || item.updatedByUnit || "",
+    item.submitterRole || item.collectorRole || item.updatedByRole || "",
+  ];
 }
 
 function renderLoginState() {
@@ -601,6 +621,9 @@ function renderScenes() {
           <label><span>开发数据支撑点</span><textarea data-scene-field="devSupport">${escapeHtml(scene.devSupport)}</textarea></label>
           <div class="scene-row">
             <label><span>负责人</span><input data-scene-field="owner" value="${attr(scene.owner)}" /></label>
+            <label><span>提交人</span><input value="${attr([scene.submitterName || scene.updatedByName, scene.submitterUnit || scene.updatedByUnit].filter(Boolean).join(" / "))}" readonly /></label>
+          </div>
+          <div class="scene-row">
             <label><span>备注</span><input data-scene-field="note" value="${attr(scene.note)}" /></label>
           </div>
           <div class="form-actions">
@@ -622,6 +645,10 @@ function sceneMatchesAdvancedQuery(scene) {
       description: scene.description,
       audioName: scene.audioName,
       tags: scene.tags,
+      submitterName: scene.submitterName || scene.updatedByName,
+      submitterPhone: scene.submitterPhone || scene.updatedByPhone,
+      submitterUnit: scene.submitterUnit || scene.updatedByUnit,
+      submitterRole: scene.submitterRole || scene.updatedByRole,
     },
     sceneQuery.text,
   );
@@ -654,6 +681,7 @@ function renderSceneQuery() {
           <td>${escapeHtml(scene.type)}</td>
           <td>${escapeHtml(scene.target)}</td>
           <td>${escapeHtml(scene.owner)}</td>
+          <td>${submitterText(scene)}</td>
           <td><span class="status ${statusClass(scene.status)}">${escapeHtml(scene.status)}</span></td>
           <td>${escapeHtml(scene.tags || "测试数据")}</td>
           <td>${escapeHtml(scene.audioName)}</td>
@@ -813,6 +841,10 @@ function sceneFromForm(data) {
     status: data.status || dict("statuses")[0] || "",
     tags: tag || "测试数据",
     note: data.note || "",
+    submitterName: state.currentUser?.name || "",
+    submitterPhone: state.currentUser?.phone || "",
+    submitterUnit: state.currentUser?.unit || "",
+    submitterRole: state.currentUser?.role || "",
     updatedByName: state.currentUser?.name || "",
     updatedByPhone: state.currentUser?.phone || "",
     updatedByUnit: state.currentUser?.unit || "",
@@ -915,7 +947,7 @@ function renderRecords() {
           <td><span class="status ${statusClass(record.result)}">${record.result}</span></td>
           <td>${escapeHtml(record.keywords)}</td>
           <td>${escapeHtml(record.devSupport)}</td>
-          <td>${escapeHtml(record.collectorName || "")}<br />${escapeHtml(record.collectorUnit || "")}</td>
+          <td>${submitterText(record)}</td>
           <td class="row-actions">
             <button class="small ghost" type="button" data-edit-record="${record.id}">修改</button>
             <button class="small ghost danger" type="button" data-delete-record="${record.id}">删除</button>
@@ -942,7 +974,7 @@ function renderAudio() {
           <td>${escapeHtml(audio.keywords)}</td>
           <td><span class="status ${statusClass(audio.status)}">${audio.status}</span></td>
           <td>${escapeHtml(audio.devSupport)}</td>
-          <td>${escapeHtml(audio.collectorName || "")}<br />${escapeHtml(audio.collectorUnit || "")}</td>
+          <td>${submitterText(audio)}</td>
           <td class="row-actions">
             <button class="small ghost" type="button" data-edit-audio="${audio.id}">修改</button>
             <button class="small ghost danger" type="button" data-delete-audio="${audio.id}">删除</button>
@@ -981,7 +1013,7 @@ function renderIssues() {
           <td>${issue.impact}</td>
           <td><span class="status ${statusClass(issue.status)}">${issue.status}</span></td>
           <td>${escapeHtml(issue.audioName)}</td>
-          <td>${escapeHtml(issue.collectorName || "")}<br />${escapeHtml(issue.collectorUnit || "")}</td>
+          <td>${submitterText(issue)}</td>
           <td class="row-actions">
             <button class="small ghost" type="button" data-edit-issue="${issue.id}">修改</button>
             <button class="small ghost danger" type="button" data-delete-issue="${issue.id}">删除</button>
@@ -1115,6 +1147,10 @@ function saveSceneFromCard(sceneId) {
   const newTag = card.querySelector("[data-new-scene-tag]")?.value.trim();
   if (newTag) scene.tags = newTag;
   addSceneTag(scene.tags);
+  scene.submitterName = state.currentUser?.name || "";
+  scene.submitterPhone = state.currentUser?.phone || "";
+  scene.submitterUnit = state.currentUser?.unit || "";
+  scene.submitterRole = state.currentUser?.role || "";
   scene.updatedByName = state.currentUser?.name || "";
   scene.updatedByPhone = state.currentUser?.phone || "";
   scene.updatedByUnit = state.currentUser?.unit || "";
@@ -1205,7 +1241,7 @@ function exportJson() {
 
 function exportCsv() {
   const rows = [
-    ["类型", "ID", "场景ID", "目标场景", "录音文件", "标签", "关键词", "开发支撑点", "状态/结果", "填写人", "手机号", "单位", "角色", "本地音频"],
+    ["类型", "ID", "场景ID", "目标场景", "录音文件", "标签", "关键词", "开发支撑点", "状态/结果", "提交人", "手机号", "单位", "角色", "本地音频"],
     ...state.scenes.map((item) => [
       "场景清单",
       item.id,
@@ -1216,10 +1252,7 @@ function exportCsv() {
       item.keywords,
       item.devSupport,
       item.status,
-      item.updatedByName || "",
-      item.updatedByPhone || "",
-      item.updatedByUnit || "",
-      item.updatedByRole || "",
+      ...submitterValues(item),
       "",
     ]),
     ...state.records.map((item) => [
@@ -1232,10 +1265,7 @@ function exportCsv() {
       item.keywords,
       item.devSupport,
       item.result,
-      item.collectorName || "",
-      item.collectorPhone || "",
-      item.collectorUnit || "",
-      item.collectorRole || "",
+      ...submitterValues(item),
       "",
     ]),
     ...state.audio.map((item) => [
@@ -1248,10 +1278,7 @@ function exportCsv() {
       item.keywords,
       item.devSupport,
       item.status,
-      item.collectorName || "",
-      item.collectorPhone || "",
-      item.collectorUnit || "",
-      item.collectorRole || "",
+      ...submitterValues(item),
       item.hasAudioFile ? "已上传" : "未上传",
     ]),
     ...state.issues.map((item) => [
@@ -1264,10 +1291,7 @@ function exportCsv() {
       item.problem,
       item.evidence,
       item.status,
-      item.collectorName || "",
-      item.collectorPhone || "",
-      item.collectorUnit || "",
-      item.collectorRole || "",
+      ...submitterValues(item),
       "",
     ]),
     ...Object.entries(state.dictionaries).map(([key, values]) => [
