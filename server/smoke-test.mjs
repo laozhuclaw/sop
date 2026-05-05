@@ -118,11 +118,31 @@ await t("audio upload roundtrip", async () => {
 
   const get = await fetch(`${BASE}/api/audio/AUD-X1`);
   assert.equal(get.status, 200);
+  // Response MUST be canonical audio/mpeg + nosniff so a malicious upload
+  // can never be rendered as HTML/JS by the browser.
+  assert.equal(get.headers.get("content-type"), "audio/mpeg");
+  assert.equal(get.headers.get("x-content-type-options"), "nosniff");
   const head = await fetch(`${BASE}/api/audio/AUD-X1`, { method: "HEAD" });
   assert.equal(head.status, 200);
   assert.equal(Number(head.headers.get("content-length")), 4);
   const buf = new Uint8Array(await get.arrayBuffer());
   assert.deepEqual(Array.from(buf), Array.from(bytes));
+});
+
+// 6b. Reject HTML masquerading as audio (XSS defense)
+await t("audio upload rejects text/html", async () => {
+  const form = new FormData();
+  form.append(
+    "file",
+    new Blob([new TextEncoder().encode("<script>alert(1)</script>")], { type: "text/html" }),
+    "evil.mp3",
+  );
+  form.append("fileName", "evil.mp3");
+  const res = await fetch(`${BASE}/api/audio/EVIL-1`, { method: "POST", body: form });
+  assert.equal(res.status, 415);
+  // confirm nothing was written
+  const fetched = await fetch(`${BASE}/api/audio/EVIL-1`);
+  assert.equal(fetched.status, 404);
 });
 
 // 7. Audio delete
@@ -144,6 +164,8 @@ await t("video upload roundtrip", async () => {
   const head = await fetch(`${BASE}/api/video/AUD-V1`, { method: "HEAD" });
   assert.equal(head.status, 200);
   assert.equal(Number(head.headers.get("content-length")), 8);
+  assert.equal(head.headers.get("content-type"), "video/mp4");
+  assert.equal(head.headers.get("x-content-type-options"), "nosniff");
 
   const get = await fetch(`${BASE}/api/video/AUD-V1`);
   assert.equal(get.status, 200);
@@ -154,6 +176,19 @@ await t("video upload roundtrip", async () => {
   assert.equal(del.status, 200);
   const after = await fetch(`${BASE}/api/video/AUD-V1`);
   assert.equal(after.status, 404);
+});
+
+// 8b. Reject HTML masquerading as video
+await t("video upload rejects text/html", async () => {
+  const form = new FormData();
+  form.append(
+    "file",
+    new Blob([new TextEncoder().encode("<script>alert(1)</script>")], { type: "text/html" }),
+    "evil.mp4",
+  );
+  form.append("fileName", "evil.mp4");
+  const res = await fetch(`${BASE}/api/video/EVIL-V1`, { method: "POST", body: form });
+  assert.equal(res.status, 415);
 });
 
 // 9. Concurrent PUTs serialize correctly via the version protocol

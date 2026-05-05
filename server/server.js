@@ -106,6 +106,29 @@ function videoPaths(id) {
   };
 }
 
+// Allowed mime types on upload. Anything else is rejected to keep the
+// served content from ever being interpreted as HTML/JS by the browser
+// (which would be stored XSS on the same origin).
+const ALLOWED_AUDIO_MIME = new Set([
+  "audio/mpeg",
+  "audio/mp3",
+  "application/octet-stream", // some browsers send this for .mp3
+]);
+const ALLOWED_VIDEO_MIME = new Set([
+  "video/mp4",
+  "application/mp4",
+  "application/octet-stream", // some browsers send this for .mp4
+]);
+
+// Defense-in-depth headers attached to every blob response so even if
+// content-type inference were wrong, the browser will refuse to sniff
+// or execute the body as a document.
+function applyBlobSafetyHeaders(res) {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("Content-Security-Policy", "default-src 'none'; sandbox");
+  res.setHeader("Referrer-Policy", "no-referrer");
+}
+
 // --- express app -------------------------------------------------------------
 const app = express();
 app.disable("x-powered-by");
@@ -226,10 +249,15 @@ const uploadVideo = multer({
 
 app.post("/api/audio/:id", upload.single("file"), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: "file_required" });
+  if (!ALLOWED_AUDIO_MIME.has(req.file.mimetype)) {
+    return res.status(415).json({ error: "unsupported_media_type", mimetype: req.file.mimetype });
+  }
   try {
     const { blob, meta, safeId } = audioPaths(req.params.id);
-    const fileName = req.body.fileName || req.file.originalname || `${safeId}.mp3`;
-    const mimeType = req.file.mimetype || "audio/mpeg";
+    const rawName = req.body.fileName || req.file.originalname || `${safeId}.mp3`;
+    // Strip path separators / control chars from the stored filename — this
+    // is what we echo back in Content-Disposition.
+    const fileName = String(rawName).replace(/[\\/\x00-\x1f]/g, "_").slice(0, 200);
     const size = req.file.size;
     const uploadedAt = new Date().toISOString();
     const checksum = crypto
@@ -240,7 +268,9 @@ app.post("/api/audio/:id", upload.single("file"), async (req, res) => {
     await fsp.writeFile(blob, req.file.buffer);
     await fsp.writeFile(
       meta,
-      JSON.stringify({ id: safeId, fileName, mimeType, size, uploadedAt, checksum }, null, 2),
+      // Note: mimeType is the canonical "audio/mpeg" — we do NOT trust the
+      // client-supplied value, since this header is later set on responses.
+      JSON.stringify({ id: safeId, fileName, mimeType: "audio/mpeg", size, uploadedAt, checksum }, null, 2),
       "utf8",
     );
     res.json({ id: safeId, fileName, size, uploadedAt, checksum });
@@ -261,8 +291,11 @@ async function audioFileInfo(id) {
 }
 
 function setAudioHeaders(res, stat, metaInfo) {
-  res.setHeader("Content-Type", metaInfo?.mimeType || "audio/mpeg");
+  // Always force the canonical mime type — never echo what the uploader
+  // sent. Combined with nosniff this neutralises stored-XSS via mime swap.
+  res.setHeader("Content-Type", "audio/mpeg");
   res.setHeader("Content-Length", stat.size);
+  applyBlobSafetyHeaders(res);
   if (metaInfo?.checksum) res.setHeader("X-Audio-Checksum", metaInfo.checksum);
   if (metaInfo?.fileName) {
     // Allow inline playback; download attribute on the link forces download.
@@ -312,10 +345,13 @@ app.delete("/api/audio/:id", async (req, res) => {
 // --- API: video --------------------------------------------------------------
 app.post("/api/video/:id", uploadVideo.single("file"), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: "file_required" });
+  if (!ALLOWED_VIDEO_MIME.has(req.file.mimetype)) {
+    return res.status(415).json({ error: "unsupported_media_type", mimetype: req.file.mimetype });
+  }
   try {
     const { blob, meta, safeId } = videoPaths(req.params.id);
-    const fileName = req.body.fileName || req.file.originalname || `${safeId}.mp4`;
-    const mimeType = req.file.mimetype || "video/mp4";
+    const rawName = req.body.fileName || req.file.originalname || `${safeId}.mp4`;
+    const fileName = String(rawName).replace(/[\\/\x00-\x1f]/g, "_").slice(0, 200);
     const size = req.file.size;
     const uploadedAt = new Date().toISOString();
     const checksum = crypto
@@ -326,7 +362,8 @@ app.post("/api/video/:id", uploadVideo.single("file"), async (req, res) => {
     await fsp.writeFile(blob, req.file.buffer);
     await fsp.writeFile(
       meta,
-      JSON.stringify({ id: safeId, fileName, mimeType, size, uploadedAt, checksum }, null, 2),
+      // mimeType is canonicalised; client-supplied value is ignored on response.
+      JSON.stringify({ id: safeId, fileName, mimeType: "video/mp4", size, uploadedAt, checksum }, null, 2),
       "utf8",
     );
     res.json({ id: safeId, fileName, size, uploadedAt, checksum });
@@ -347,8 +384,9 @@ async function videoFileInfo(id) {
 }
 
 function setVideoHeaders(res, stat, metaInfo) {
-  res.setHeader("Content-Type", metaInfo?.mimeType || "video/mp4");
+  res.setHeader("Content-Type", "video/mp4");
   res.setHeader("Content-Length", stat.size);
+  applyBlobSafetyHeaders(res);
   if (metaInfo?.checksum) res.setHeader("X-Video-Checksum", metaInfo.checksum);
   if (metaInfo?.fileName) {
     res.setHeader(
