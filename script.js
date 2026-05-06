@@ -812,6 +812,7 @@ function renderScenes() {
           <label><span>目标场景</span><input data-scene-field="target" value="${attr(scene.target)}" /></label>
           <label><span>场景描述</span><textarea data-scene-field="description">${escapeHtml(scene.description)}</textarea></label>
           <label><span>录音文件</span><input data-scene-field="audioName" value="${attr(scene.audioName)}" /></label>
+          <label><span>关联场景</span><input data-scene-field="relatedScenes" value="${attr(scene.relatedScenes)}" /></label>
           <div class="scene-row">
             <label>
               <span>标签</span>
@@ -850,6 +851,7 @@ function sceneMatchesAdvancedQuery(scene) {
       target: scene.target,
       description: scene.description,
       audioName: scene.audioName,
+      relatedScenes: scene.relatedScenes,
       tags: scene.tags,
       submitterName: scene.submitterName || scene.updatedByName,
       submitterPhone: scene.submitterPhone || scene.updatedByPhone,
@@ -868,6 +870,7 @@ function sceneMatchesAdvancedQuery(scene) {
       dataNeeded: scene.dataNeeded,
       devSupport: scene.devSupport,
       note: scene.note,
+      relatedScenes: scene.relatedScenes,
       tags: scene.tags,
     },
     sceneQuery.keyword,
@@ -886,6 +889,7 @@ function renderSceneQuery() {
           <td>${scene.id}</td>
           <td>${escapeHtml(scene.type)}</td>
           <td>${escapeHtml(scene.target)}</td>
+          <td>${escapeHtml(scene.relatedScenes || "")}</td>
           <td>${escapeHtml(scene.owner)}</td>
           <td>${submitterText(scene)}</td>
           <td><span class="status ${statusClass(scene.status)}">${escapeHtml(scene.status)}</span></td>
@@ -916,6 +920,7 @@ const sceneFields = [
   ["tags", "标签", "selectSceneTag"],
   ["newTag", "新标签"],
   ["audioName", "录音文件名"],
+  ["relatedScenes", "关联场景"],
   ["owner", "负责人"],
   ["description", "场景描述", "textarea", "field-wide"],
   ["keywords", "关键词/触发词", "textarea", "field-wide"],
@@ -1074,6 +1079,7 @@ function sceneFromForm(data) {
     target: data.target || "",
     description: data.description || "",
     audioName: normalizeMp3(data.audioName || `${id}_01.mp3`),
+    relatedScenes: data.relatedScenes || "",
     keywords: data.keywords || "",
     dataNeeded: data.dataNeeded || "",
     devSupport: data.devSupport || "",
@@ -1579,12 +1585,13 @@ function exportJson() {
 
 function exportCsv() {
   const rows = [
-    ["类型", "ID", "场景ID", "目标场景", "录音文件", "视频文件", "标签", "关键词", "开发支撑点", "状态/结果", "提交人", "手机号", "单位", "角色", "本地音频", "本地视频"],
+    ["类型", "ID", "场景ID", "目标场景", "关联场景", "录音文件", "视频文件", "标签", "关键词", "开发支撑点", "状态/结果", "提交人", "手机号", "单位", "角色", "本地音频", "本地视频"],
     ...state.scenes.map((item) => [
       "场景清单",
       item.id,
       item.id,
       item.target,
+      item.relatedScenes || "",
       item.audioName,
       "",
       item.tags || "测试数据",
@@ -1600,6 +1607,7 @@ function exportCsv() {
       item.id,
       item.sceneId,
       item.target,
+      "",
       item.audioName,
       "",
       item.tags || "测试数据",
@@ -1615,6 +1623,7 @@ function exportCsv() {
       item.id,
       item.sceneId,
       item.target,
+      "",
       item.audioName,
       item.videoName || "",
       item.tags || "测试数据",
@@ -1630,6 +1639,7 @@ function exportCsv() {
       item.id,
       item.sceneId,
       item.target,
+      "",
       item.audioName,
       "",
       item.tags || "测试数据",
@@ -1645,6 +1655,7 @@ function exportCsv() {
       userKey(item),
       "",
       item.name,
+      "",
       "",
       "",
       "",
@@ -1666,6 +1677,7 @@ function exportCsv() {
         row[3] || "",
         "",
         "",
+        "",
         date,
         [row[0], row[1], row[4], row[5], row[6]].filter(Boolean).join(";"),
         row[6] || "",
@@ -1683,6 +1695,7 @@ function exportCsv() {
       date,
       "",
       `${date} 当日总结`,
+      "",
       "",
       "",
       date,
@@ -1706,6 +1719,7 @@ function exportCsv() {
       key,
       "",
       dictionaryLabels[key] || key,
+      "",
       "",
       "",
       "",
