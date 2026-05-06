@@ -50,7 +50,7 @@ const defaultUsers = [
   { name: "张明昊", phone: "18662678967", unit: "好活", role: "开发", loginAt: "" },
   { name: "王子寅", phone: "13372152239", unit: "好活", role: "开发", loginAt: "" },
   { name: "邵新", phone: "待补充", unit: "苏州移动 网络部", role: "网络", loginAt: "" },
-  { name: "AI", phone: "19900000000", unit: "AICP", role: "AI", loginAt: "" },
+  { name: "AI", phone: "19900000000", unit: "好活", role: "开发", loginAt: "" },
 ];
 
 const initialDictionaries = {
@@ -64,7 +64,7 @@ const initialDictionaries = {
   priorities: ["P0-必须当天解决", "P1-本周解决", "P2-可排期", "P3-观察"],
   impact: ["是", "否", "部分影响"],
   issueStatuses: ["待确认", "待开发", "开发中", "待验收", "已关闭", "暂缓"],
-  roles: ["网络", "市场", "装维", "营业厅", "开发", "AI"],
+  roles: ["网络", "市场", "装维", "营业厅", "开发"],
   sceneTags: ["测试数据"],
 };
 
@@ -87,16 +87,16 @@ const sampleSubmitter = {
   tags: "测试数据",
   submitterName: "AI",
   submitterPhone: "19900000000",
-  submitterUnit: "AICP",
-  submitterRole: "AI",
+  submitterUnit: "好活",
+  submitterRole: "开发",
   collectorName: "AI",
   collectorPhone: "19900000000",
-  collectorUnit: "AICP",
-  collectorRole: "AI",
+  collectorUnit: "好活",
+  collectorRole: "开发",
   updatedByName: "AI",
   updatedByPhone: "19900000000",
-  updatedByUnit: "AICP",
-  updatedByRole: "AI",
+  updatedByUnit: "好活",
+  updatedByRole: "开发",
 };
 
 const initialData = {
