@@ -53,8 +53,22 @@ const defaultUsers = [
   { name: "AI", phone: "19900000000", unit: "好活", role: "开发", loginAt: "" },
 ];
 
+// 场景 ID 命名规则：[KB-]<类型缩写>-<3位序号>
+//   KB- 表示知识库场景（培训/SOP），无前缀表示演练场景
+//   类型缩写：BZ=基本保障 FW=服务 SX=随销 YC=异常升级 LC=装维流程 GZ=故障诊断 TS=投诉预处理
+//   示例：BZ-001（演练·基本保障）、KB-SX-005（知识库·随销）
+const SCENE_TYPE_CODES = {
+  BZ: "基本保障",
+  FW: "服务",
+  SX: "随销",
+  YC: "异常升级",
+  LC: "装维流程",
+  GZ: "故障诊断",
+  TS: "投诉预处理",
+};
+
 const initialDictionaries = {
-  sceneTypes: ["基本保障", "服务", "随销", "异常升级"],
+  sceneTypes: ["基本保障", "服务", "随销", "异常升级", "装维流程", "故障诊断", "投诉预处理"],
   statuses: ["未开始", "演练中", "通过", "需复盘", "阻塞"],
   results: ["通过", "部分通过", "未通过", "待确认"],
   rounds: ["1", "2", "3"],
@@ -1754,7 +1768,60 @@ function initNav() {
   showView(initial);
 }
 
+function initMindmapLightbox() {
+  const lightbox = $("#mindmapLightbox");
+  const image = $("#mindmapLightboxImage");
+  const title = $("#mindmapLightboxTitle");
+  const closeBtn = $("#mindmapLightboxClose");
+  if (!lightbox || !image || !title || !closeBtn) return;
+
+  const close = () => {
+    lightbox.hidden = true;
+    document.body.classList.remove("lightbox-open");
+    image.removeAttribute("src");
+    image.alt = "";
+  };
+
+  document.addEventListener("click", (event) => {
+    const trigger = event.target.closest("[data-zoom-src]");
+    if (!trigger) return;
+    const src = trigger.dataset.zoomSrc;
+    const zoomTitle = trigger.dataset.zoomTitle || "脑图大图";
+    if (!src) return;
+    title.textContent = zoomTitle;
+    image.src = src;
+    image.alt = `${zoomTitle}大图`;
+    lightbox.hidden = false;
+    document.body.classList.add("lightbox-open");
+    closeBtn.focus();
+  });
+
+  closeBtn.addEventListener("click", close);
+  lightbox.addEventListener("click", (event) => {
+    if (event.target === lightbox) close();
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !lightbox.hidden) close();
+  });
+}
+
+function initKbTabs() {
+  const tabs = $$(".kb-tab");
+  const panes = $$("[data-kb-pane]");
+  if (!tabs.length || !panes.length) return;
+  tabs.forEach((tab) => {
+    tab.addEventListener("click", () => {
+      const target = tab.dataset.kbTab;
+      tabs.forEach((t) => t.classList.toggle("is-active", t === tab));
+      panes.forEach((p) => p.classList.toggle("is-active", p.dataset.kbPane === target));
+    });
+  });
+}
+
 function initEvents() {
+  initMindmapLightbox();
+  initKbTabs();
+
   $("#loginForm").addEventListener("click", (event) => {
     const name = event.target.dataset.quickUser;
     if (!name) return;

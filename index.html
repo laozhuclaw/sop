@@ -55,6 +55,7 @@
 
       <nav class="nav" aria-label="模块导航">
         <a class="is-active" href="#dashboard" data-view-link="dashboard">总览</a>
+        <a href="#mindmap" data-view-link="mindmap">装维知识库</a>
         <a href="#schedule" data-view-link="schedule">演练日程</a>
         <a href="#scenes" data-view-link="scenes">场景清单</a>
         <a href="#records" data-view-link="records">现场记录</a>
@@ -151,6 +152,659 @@
         </section>
       </section>
 
+      <section id="mindmap" class="view" data-view="mindmap">
+        <section class="panel kb-intro-panel">
+          <div class="panel-head">
+            <div>
+              <p class="eyebrow">苏州移动装维资料</p>
+              <h2>装维知识库</h2>
+              <p>资料包里的脑图、晨会脚本、入户流程、故障诊断、随销话术、投诉工具命令，统一沉淀成可按场景查用的卡片库。</p>
+            </div>
+          </div>
+          <nav class="kb-tabs" aria-label="装维知识库子模块">
+            <button type="button" class="kb-tab is-active" data-kb-tab="mindmaps">资料脑图</button>
+            <button type="button" class="kb-tab" data-kb-tab="workflow">入户全流程</button>
+            <button type="button" class="kb-tab" data-kb-tab="morning">晨会标准动作</button>
+            <button type="button" class="kb-tab" data-kb-tab="fault">故障诊断树</button>
+            <button type="button" class="kb-tab" data-kb-tab="scripts">场景话术库</button>
+            <button type="button" class="kb-tab" data-kb-tab="tools">投诉处理工具</button>
+            <button type="button" class="kb-tab" data-kb-tab="iphone">iPhone 修复</button>
+            <button type="button" class="kb-tab" data-kb-tab="source">资料原文</button>
+          </nav>
+        </section>
+
+        <div class="kb-pane is-active" data-kb-pane="mindmaps">
+          <section class="panel mindmap-panel">
+            <div class="panel-head">
+              <div>
+                <h2>资料原版脑图</h2>
+                <p>装维师傅作业主线 + 故障投诉诊断路径，点击大图可放大查阅。</p>
+              </div>
+            </div>
+            <div class="mindmap-images" aria-label="资料 PNG 脑图">
+              <figure class="mindmap-image-card">
+                <figcaption>
+                  <strong>装维师傅工作流程</strong>
+                  <span>来源：装维师傅工作流程.png</span>
+                </figcaption>
+                <div class="mindmap-image-stage">
+                  <button class="mindmap-zoom-trigger" type="button" data-zoom-title="装维师傅工作流程" data-zoom-src="assets/mindmaps/installation-workflow.png">
+                    <img src="assets/mindmaps/installation-workflow.png" alt="装维师傅工作流程脑图" />
+                  </button>
+                </div>
+              </figure>
+              <figure class="mindmap-image-card">
+                <figcaption>
+                  <strong>故障投诉类型与诊断路径</strong>
+                  <span>来源：故障投诉类型与诊断路径 (1).png</span>
+                </figcaption>
+                <div class="mindmap-image-stage">
+                  <button class="mindmap-zoom-trigger" type="button" data-zoom-title="故障投诉类型与诊断路径" data-zoom-src="assets/mindmaps/fault-diagnosis-path.png">
+                    <img src="assets/mindmaps/fault-diagnosis-path.png" alt="故障投诉类型与诊断路径脑图" />
+                  </button>
+                </div>
+              </figure>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>知识库落地顺序</h2>
+                <p>先把主干变成可用页面，再逐步补知识库和自动推荐。</p>
+              </div>
+            </div>
+            <div class="focus-grid">
+              <div><strong>第一步：故障诊断树</strong><p>按用户现象进入，逐步问诊并给出现场动作。</p></div>
+              <div><strong>第二步：话术卡片库</strong><p>破冰、检测、推荐、异议处理、促成签约按场景筛选。</p></div>
+              <div><strong>第三步：投诉工具库</strong><p>沉淀命令模板、判断标准、拨测工具和客户回复口径。</p></div>
+              <div><strong>第四步：晨会检查清单</strong><p>把安全、工具、指标和复盘动作标准化。</p></div>
+            </div>
+          </section>
+        </div>
+
+        <div class="kb-pane" data-kb-pane="workflow">
+          <section class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>入户作业全流程（6 阶段）</h2>
+                <p>从晨会到离开后回单，每个阶段的关键动作和输出物。</p>
+              </div>
+            </div>
+            <div class="kb-stage-grid">
+              <article class="kb-stage">
+                <header><span class="kb-stage-no">01</span><h3>晨会</h3></header>
+                <ul>
+                  <li>点名、身体状况、是否饮酒</li>
+                  <li>工装/工号牌/登高证检查</li>
+                  <li>绝缘鞋、绝缘手套、电笔、安全帽验电</li>
+                  <li>小工具、熔接机、光功率计、急救包、安全带、梯子</li>
+                  <li>四必讲：网格工单 → 安全事故案例 → 安全知识抽问 → 维护指标</li>
+                  <li>电瓶车检查后出发</li>
+                </ul>
+              </article>
+              <article class="kb-stage">
+                <header><span class="kb-stage-no">02</span><h3>预约调度</h3></header>
+                <ul>
+                  <li>工单分派、用户情况、三推目标识别</li>
+                  <li>主动改约 / 被动改约协同</li>
+                  <li>耳机/CP 自动提醒首次/二次/三次</li>
+                  <li>确认客户在家、户型、工具与业务资料</li>
+                </ul>
+              </article>
+              <article class="kb-stage">
+                <header><span class="kb-stage-no">03</span><h3>入户前</h3></header>
+                <ul>
+                  <li>核对客户姓名、套餐档次、5GA / W话返资格</li>
+                  <li>带齐 FTTR、千兆路由、机顶盒、看家摄像头物料</li>
+                  <li>提前看一眼"四看"信息：设备 / 环境 / 人群 / 行为</li>
+                  <li>开启工单任务，准备开口话术</li>
+                </ul>
+              </article>
+              <article class="kb-stage">
+                <header><span class="kb-stage-no">04</span><h3>作业中</h3></header>
+                <ul>
+                  <li>开口话术：检测切入 / 普遍现象 / 福利切入</li>
+                  <li>核实户型与网口布设，判断明线/暗管</li>
+                  <li>测速、光功率（-8 ~ -25 dBm）、DNS、终端、路由器</li>
+                  <li>故障排查走"故障诊断树"分支</li>
+                  <li>展示热力图与房间测速制造体验差距</li>
+                </ul>
+              </article>
+              <article class="kb-stage">
+                <header><span class="kb-stage-no">05</span><h3>离开前</h3></header>
+                <ul>
+                  <li>讲解小贴纸、IPTV/会员/回看演示</li>
+                  <li>FTTR / 千兆路由 / 移动看家随销引导</li>
+                  <li>异议处理三类：太贵 / 够用 / 考虑考虑</li>
+                  <li>满意度提醒，添加企业微信</li>
+                  <li>工具设备清点回收</li>
+                </ul>
+              </article>
+              <article class="kb-stage">
+                <header><span class="kb-stage-no">06</span><h3>离开后</h3></header>
+                <ul>
+                  <li>当场或赶回前完成回单</li>
+                  <li>拍照归档：进户、设备、测速、签字</li>
+                  <li>商机字段沉淀：5GA、FTTR 候选、智能家居预留</li>
+                  <li>投诉/质差类工单复盘到群</li>
+                </ul>
+              </article>
+            </div>
+          </section>
+        </div>
+
+        <div class="kb-pane" data-kb-pane="morning">
+          <section class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>晨会标准脚本</h2>
+                <p>来源：晨会流程zjl.docx，按"工装 → 工具 → 四必讲 → 安全抽问 → 天气与维护指标"逐项打卡。</p>
+              </div>
+            </div>
+            <div class="kb-grid-2">
+              <article class="kb-card">
+                <h3>① 工装与人员检查</h3>
+                <ol>
+                  <li>点名（应到/实到/请假），询问昨夜饮酒、身体不适</li>
+                  <li>工装统一、腰包、急救包、防暑用品到位</li>
+                  <li>工号牌 + 登高证（在有效期内）</li>
+                  <li>绝缘鞋（无破损/裂痕）</li>
+                  <li>绝缘手套（无破损，戴好）</li>
+                  <li>测电笔（外观完好、有电）</li>
+                  <li>安全帽（帽檐/帽寸/下颌带、近电告警器、延长线）</li>
+                  <li>戴好手套与安全帽 → 远→近 30cm 验电（先帽后笔）</li>
+                </ol>
+              </article>
+              <article class="kb-card">
+                <h3>② 生产工具检查</h3>
+                <ol>
+                  <li>小工具齐全完好、绝缘处理</li>
+                  <li>熔接机 / 光功率计 / 红光源电量充足</li>
+                  <li>酒精与酒精棉签是否需补充</li>
+                  <li>急救包药品有效期</li>
+                  <li>防暑用品（藿香正气水）按季节抽检</li>
+                  <li>安全带 / 安全绳 拉力测试</li>
+                  <li>梯子防滑垫、防滑条、反光条、抖动检测</li>
+                </ol>
+              </article>
+              <article class="kb-card kb-card-emph">
+                <h3>③ 早交班"四必讲"</h3>
+                <ol>
+                  <li><strong>工单与风险源：</strong>今日网格 X 单装机/Y 单四级一般工单；弱电井/共建机房黑暗作业、不明线物按电力线处理、二次作业必须再验电</li>
+                  <li><strong>安全事故案例：</strong>选一例（岳阳触电、洛阳杆倾倒），强调近电规范、登梯登杆四必做、登高五必做</li>
+                  <li><strong>安全知识抽问：</strong>登梯/登杆四必做、登高五必做、一级风险源定义、六严禁、高/低压线根数</li>
+                  <li><strong>维护指标提醒：</strong>满意度、样本量、专项、工单积压、随销</li>
+                </ol>
+              </article>
+              <article class="kb-card">
+                <h3>④ 登梯登杆"四必做"</h3>
+                <p><strong>登梯：</strong>架梯前先验电 → 登梯前再验梯 → 不明线物反复验 → 重复登梯要验电</p>
+                <p><strong>登杆：</strong>登杆前先验电 → 观察杆体无裂变 → 推动杆体做测试 → 离地 30cm 测脚扣</p>
+              </article>
+              <article class="kb-card">
+                <h3>⑤ 登高"五必做"</h3>
+                <ol>
+                  <li>观察现场环境，选择合适路径</li>
+                  <li>安全带打牢，防止高空坠落</li>
+                  <li>不明线路和物均反复验电</li>
+                  <li>靠近电线作业保持安全距离</li>
+                  <li>杆/梯上作业点安全绳挂牢靠</li>
+                </ol>
+              </article>
+              <article class="kb-card">
+                <h3>⑥ 作业"六严禁"</h3>
+                <ol>
+                  <li>严禁在不具备安全作业环境下作业或施工</li>
+                  <li>严禁无登高证人员登高作业</li>
+                  <li>严禁登高作业中单人作业</li>
+                  <li>严禁抢工期、赶进度违章作业</li>
+                  <li>严禁违法违章违规指挥和派单</li>
+                  <li>严禁无工单作业或施工</li>
+                </ol>
+              </article>
+              <article class="kb-card">
+                <h3>⑦ 一级风险源识别</h3>
+                <ol>
+                  <li>作业空间不能满足要求、危及人身安全</li>
+                  <li>分线盒/光交箱距变压器或高压线 &lt; 2.5 米</li>
+                  <li>分线盒在电力线上方且距离较近</li>
+                  <li>用户线必须经过变压器才能完成作业</li>
+                  <li>用户线与电力线交越或上方平行距离过近</li>
+                </ol>
+              </article>
+              <article class="kb-card">
+                <h3>⑧ 一看二想三拍四操作</h3>
+                <p><strong>看：</strong>现场环境、进户点、径路风险源</p>
+                <p><strong>想：</strong>劳保用品、避开/防范风险源（一级停作业上报）</p>
+                <p><strong>拍：</strong>佩戴齐全后拍照上传安全群</p>
+                <p><strong>操作：</strong>登梯登杆双十条、规范近电作业、遇一级风险源立即停作业</p>
+              </article>
+            </div>
+          </section>
+        </div>
+
+        <div class="kb-pane" data-kb-pane="fault">
+          <section class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>故障诊断树（5 大场景）</h2>
+                <p>按用户现象逐层细化 → 排查方向 → 现场处置步骤。来源：4.26 家庭宽带网络中断排查要点.xlsx。</p>
+              </div>
+            </div>
+            <div class="kb-fault-grid">
+              <article class="kb-fault">
+                <h3>① 网页打不开</h3>
+                <ul>
+                  <li><strong>所有网页打不开，QQ/微信正常：</strong>DNS 问题 → 检查光猫/路由 DNS → 改为 <code>112.4.0.55</code> → 重启光猫与路由 → 重测</li>
+                  <li><strong>所有网页+QQ 都断：</strong>光猫 LOS 红灯 → 查光功率/断纤 → 重插光纤、重启 → 修复外线</li>
+                  <li><strong>仅部分打不开：</strong>代理/VPN 问题 → 关代理 → 清缓存 → 重置网络 → 路由出厂</li>
+                  <li><strong>单一网页打不开：</strong>用 4G/5G 测同一网页 → 若也不通则站点问题；若通则查防火墙、MTU；用 itdog 三网测试，定位集团/反诈/公安封堵</li>
+                </ul>
+              </article>
+              <article class="kb-fault">
+                <h3>② 游戏无法连接</h3>
+                <ul>
+                  <li><strong>所有游戏登不上：</strong>DNS/代理 → 检查 DNS 是否 <code>112.4.0.55</code> → 关代理 → 重启光猫/路由</li>
+                  <li><strong>能登录但进不了对局：</strong>端口/协议被阻 → 关 SPI 防火墙 → 开 UPnP → 设置 DMZ → 用游戏加速器</li>
+                  <li><strong>单一游戏不通：</strong>查游戏官方服务器；改路由 MTU 1400-1450</li>
+                  <li><strong>对局中频繁掉线：</strong>查 lost-carrier、光功率、PON 口稳定、路由过热 → 换网线/路由</li>
+                  <li><strong>时延大：</strong>用 IP 雷达抓游戏服 IP → tcping 看互通 → 异网走优化线路</li>
+                  <li><strong>登录成功无法组房：</strong>NAT4 → <strong>改为 NAT1</strong></li>
+                </ul>
+              </article>
+              <article class="kb-fault">
+                <h3>③ 直播无法观看 / 推流</h3>
+                <ul>
+                  <li><strong>所有平台加载失败：</strong>DNS/代理；关 IPv6；关广告拦截；换 APP/浏览器</li>
+                  <li><strong>有声无画：</strong>带宽/解码 → 测速、降画质、换 APP、关省流、查路由 QoS</li>
+                  <li><strong>推流中断：</strong>查 lost-carrier、光功率、PON、法兰头/分光器、必要时换光猫尾纤</li>
+                  <li><strong>"主播网络不稳定"：</strong>测上行；<strong>PON 口建议 ≤32 户</strong>；关上行占用设备（监控/云盘）</li>
+                  <li><strong>"连接服务器失败"：</strong>切线路、换协议（RTMP→SRT）、手机热点对照</li>
+                  <li><strong>推流端口被阻：</strong>开放 1935/443，开 UPnP 或端口转发，关 SPI</li>
+                </ul>
+              </article>
+              <article class="kb-fault">
+                <h3>④ 视频无法播放</h3>
+                <ul>
+                  <li><strong>所有平台不能播：</strong>查光猫灯、测速、DNS、关代理、重启路由</li>
+                  <li><strong>能加载列表点不开：</strong>解码/APP → 关省流模式、清缓存、更新 APP</li>
+                  <li><strong>单一平台不通：</strong>异网测同站；改移动 DNS；VPN 测限流</li>
+                  <li><strong>部分视频不通：</strong>抓包分析 IP/域名 → 公安/GFW 封堵或质差</li>
+                </ul>
+              </article>
+              <article class="kb-fault">
+                <h3>⑤ 频繁断网，时断时续</h3>
+                <ul>
+                  <li><strong>IP 冲突：</strong>查路由内是否配静态 IP → 改 DHCP 自动 → 重启路由+冲突设备 → 清 ARP 缓存</li>
+                  <li><strong>NAT 会话超限（智能终端异常）：</strong>拔掉异常终端或换设备</li>
+                  <li><strong>NAT 会话超限（多人办公）：</strong>改 NAT1，建议改极速一网通专线（动态公网 IP，无会话数限制）</li>
+                  <li><strong>流氓 ONU：</strong>同一 PON 多用户掉线 → 后台查、现场反向收光定位</li>
+                  <li><strong>光功率临界：</strong>掌上家客查询临界值，处理外线/法兰头</li>
+                </ul>
+              </article>
+              <article class="kb-fault kb-fault-emph">
+                <h3>兜底排查清单</h3>
+                <ul>
+                  <li>后台账号状态 + 光功率（参考区间 -8 ~ -25 dBm）</li>
+                  <li>远程或手动重启光猫</li>
+                  <li>路由器年龄 &gt; 2 年 / Wi-Fi5 以下 → 评估更换</li>
+                  <li>仍异常考虑更换设备或室内布线整改</li>
+                </ul>
+              </article>
+            </div>
+          </section>
+        </div>
+
+        <div class="kb-pane" data-kb-pane="scripts">
+          <section class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>场景话术库</h2>
+                <p>开口 → 转折 → 价值 → 异议 → 促成，按场景挑卡组合。</p>
+              </div>
+            </div>
+
+            <h3 class="kb-section-title">入户开口（四层结构）</h3>
+            <div class="kb-grid-2">
+              <article class="kb-card">
+                <h4>① 开场白（建立信任）</h4>
+                <ul>
+                  <li><strong>检测切入：</strong>"我今天主要帮您看看路由器性能，顺便做个网络检测。"</li>
+                  <li><strong>普遍现象：</strong>"很多用户一开始觉得网够用，一测才发现路由器跟不上了。"</li>
+                  <li><strong>专业性：</strong>"您家这个户型我见过挺多次，信号盲区一般在卧室或阳台。"</li>
+                  <li><strong>福利切入：</strong>"我顺便帮您查一下系统，看有没有还没领的免费升级或换新优惠。"</li>
+                </ul>
+              </article>
+              <article class="kb-card">
+                <h4>② 转折句（重新定义问题）</h4>
+                <ul>
+                  <li>"其实这不是宽带的问题，是路由器有点跟不上了。"</li>
+                  <li>"您可能没注意到，但这个会影响您看视频、打游戏的稳定性。"</li>
+                  <li>"现在用着行，但以后家里设备多了，可能就容易卡。"</li>
+                  <li>"我有个客户跟您家情况差不多，换了路由器后稳多了。"</li>
+                </ul>
+              </article>
+              <article class="kb-card">
+                <h4>③ 引导未来 / 价值呈现</h4>
+                <ul>
+                  <li>客厅 500M、小房间不到百兆 → 家人多、孩子上网课会卡</li>
+                  <li>FTTR 全屋满格、无缝漫游、低延迟、智能家居预留</li>
+                  <li>"换成 FTTR 走到哪都流畅，您也不用天天操心网络。"</li>
+                </ul>
+              </article>
+              <article class="kb-card kb-card-emph">
+                <h4>④ 促成（降低门槛 + 二选一）</h4>
+                <ul>
+                  <li>"今天正好有个活动，我帮您申请一下，挺划算的。"</li>
+                  <li>"我先给您装上，您试用几天感受一下，不合适我一个电话过来拆，一分钱不收。"</li>
+                  <li>"现在升级，相当于提前解决了以后可能出现的卡顿问题。"</li>
+                  <li>"您看是今天装方便，还是明天装方便？"</li>
+                </ul>
+              </article>
+            </div>
+
+            <h3 class="kb-section-title">FTTR 推荐 6 场景</h3>
+            <div class="kb-grid-2">
+              <article class="kb-card">
+                <h4>5GA 目标用户（免费送）</h4>
+                <p><strong>适用：</strong>主套餐高，符合 5GA 体验条件，免 200 调试费。</p>
+                <p>"您号码套餐挺高，符合 5GA 体验条件。资费不变（或微涨），可以领一套 FTTR 一主一从，比现在路由器强多了。"</p>
+              </article>
+              <article class="kb-card">
+                <h4>W 话返目标用户（免费送）</h4>
+                <p><strong>适用：</strong>199 元档返 30 元 / 150 元档返 25 元。</p>
+                <p>"充值 200 元送 FTTR 一主一从。非千兆用户：办理 FTTR 充 200 同步免费升千兆。"</p>
+              </article>
+              <article class="kb-card">
+                <h4>正常收费月包（百兆/大户型）</h4>
+                <p><strong>适用：</strong>百兆路由、面积大、网速慢用户，以"二次光改"切入。</p>
+                <p>"千兆宽带配百兆路由跟不上，每个月多花一包烟钱，一步到位每个房间满格。"（配老客户案例图）</p>
+              </article>
+              <article class="kb-card">
+                <h4>焕新套餐升档</h4>
+                <p><strong>适用：</strong>可升档至全家享 89 元及以上。</p>
+                <p>"换 89 元全家享，每月 20 元权益金可抵 FTTR 设备费，不花啥钱把家网彻底升级。"</p>
+              </article>
+              <article class="kb-card">
+                <h4>存量接续（千兆 + 5 元）</h4>
+                <p><strong>适用：</strong>现千兆 20 元、消费 60 元以上。</p>
+                <p>"每月加 5 元（共 25 元）+ 充 200，一步到位升级 FTTR 一拖一高端路由。"</p>
+              </article>
+              <article class="kb-card">
+                <h4>比算新增 / 异网迁入</h4>
+                <p><strong>适用：</strong>家人有异网卡或新增需求。</p>
+                <p>"办 109/169/199 比算套餐，比分开用便宜，自带 FTTR 设备。"</p>
+              </article>
+            </div>
+
+            <h3 class="kb-section-title">异议处理（三类拒绝）</h3>
+            <div class="kb-grid-3">
+              <article class="kb-card">
+                <h4>价格敏感型："太贵了"</h4>
+                <p><strong>共情 → 重构价值 → 拆分成本</strong></p>
+                <p>"完全理解。但您路由器用了 3 年多，百兆跑不满 300M，小马拉大车。FTTR 设备不收费，每月只付千兆提速费用，每天不到 1 元，全屋满格。"</p>
+                <p>"两台好路由也要四五百，用一两年又卡。FTTR 一次 200、月付 25，包安装包调试，协议期内坏了免费换。"</p>
+              </article>
+              <article class="kb-card">
+                <h4>满足现状型："够用"</h4>
+                <p><strong>挖隐性痛点 → 描绘场景 → 制造体验差距</strong></p>
+                <p>"周末窝沙发刷视频突然转圈过吗？家里 2 部手机+电视+平板+智能家居同时在线，百兆路由就像一条小路。"</p>
+                <p>"FTTR 给每个房间单独一条光纤高速路，互不干扰。"（现场打开 Wi-Fi 测速 + 热力图佐证）</p>
+              </article>
+              <article class="kb-card">
+                <h4>拖延决策型："考虑考虑"</h4>
+                <p><strong>给理由 + 制造稀缺 + 降低门槛</strong></p>
+                <p>"换网络确实要好好考虑。这个'老用户免费升级 FTTR'活动到月底就结束，您可以先占名额。"</p>
+                <p>"今天先给您装上试用 7 天，不满意一个电话拆走，一分钱不收。今天办还能申请优先安装。"</p>
+              </article>
+            </div>
+
+            <h3 class="kb-section-title">高潜用户"四看"识别</h3>
+            <div class="kb-grid-4">
+              <article class="kb-card">
+                <h4>看设备</h4>
+                <ul>
+                  <li>路由器 &gt; 2 年</li>
+                  <li>Wi-Fi5 以下 / 百兆款</li>
+                  <li>老款机顶盒</li>
+                  <li>套餐 &lt; 300M</li>
+                </ul>
+              </article>
+              <article class="kb-card">
+                <h4>看环境</h4>
+                <ul>
+                  <li>≤80㎡ 单路由</li>
+                  <li>80-120㎡ 双路由 / FTTR</li>
+                  <li>&gt;120㎡ 强推 FTTR</li>
+                  <li>关注卧室/书房/卫生间/阳台</li>
+                </ul>
+              </article>
+              <article class="kb-card">
+                <h4>看人群</h4>
+                <ul>
+                  <li>游戏玩家：FTTR + 电竞加速</li>
+                  <li>网课家庭：FTTR 全屋覆盖</li>
+                  <li>商铺/办公：FTTR + 安防</li>
+                  <li>老年用户：大屏会员 + 看家</li>
+                </ul>
+              </article>
+              <article class="kb-card">
+                <h4>看行为</h4>
+                <ul>
+                  <li>多设备同时在线</li>
+                  <li>高峰期用网</li>
+                  <li>有投诉/报修历史</li>
+                  <li>多意图/质差工单</li>
+                </ul>
+              </article>
+            </div>
+          </section>
+        </div>
+
+        <div class="kb-pane" data-kb-pane="tools">
+          <section class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>投诉预处理工具链</h2>
+                <p>来源：苏州移动（内容）投诉预处理.docx — 命令模板可现场复制使用。</p>
+              </div>
+            </div>
+
+            <div class="kb-tool-grid">
+              <article class="kb-tool">
+                <header><h3>ping</h3><span>cmd 内置</span></header>
+                <pre><code>ping www.baidu.com
+ping -t 1.1.1.1
+ping -4 -n 20 host
+ping -l 1400 -f host</code></pre>
+                <p><strong>常用项：</strong>-t 持续 / -a 反查主机名 / -4/-6 强制版本 / -n 次数 / -l 缓冲 / -f 不分段（仅 IPv4） / -i TTL</p>
+              </article>
+              <article class="kb-tool">
+                <header><h3>tracert</h3><span>cmd 内置</span></header>
+                <pre><code>tracert www.baidu.com
+tracert -d -h 30 host
+tracert -4 -w 2000 host</code></pre>
+                <p><strong>常用项：</strong>-d 不解析主机名 / -h 最大跃点 / -w 等待 ms / -4/-6</p>
+              </article>
+              <article class="kb-tool">
+                <header><h3>nslookup</h3><span>cmd 内置</span></header>
+                <pre><code>nslookup baidu.com
+nslookup baidu.com 112.4.0.55</code></pre>
+                <p>查域名解析；可指定 DNS。</p>
+              </article>
+              <article class="kb-tool">
+                <header><h3>tcping</h3><span>外部工具</span></header>
+                <pre><code>tcping 183.232.231.172 80
+tcping -n 20 host 443
+tcping -i 0.5 -w 2 host 80</code></pre>
+                <p>测 TCP 端口（ping 走 ICMP 测不了端口）。port is open / socket is not connected。</p>
+              </article>
+              <article class="kb-tool">
+                <header><h3>dig</h3><span>需安装</span></header>
+                <pre><code>dig baidu.com
+dig baidu.com @112.4.0.55
+dig baidu.com +short
+dig MX baidu.com
+dig -x 39.134.69.205
+dig baidu.com +trace
+dig baidu.com aaaa</code></pre>
+                <p>比 nslookup 强，支持 DNS 指定、PTR 反查、解析溯源、IPv6。</p>
+              </article>
+              <article class="kb-tool">
+                <header><h3>besttrace</h3><span>路由追踪</span></header>
+                <p>GUI 工具，输入目标 IP 即可看到路由路径，可视化定位质差/绕行。</p>
+                <p>Mac/iOS 在 App Store 下载；Windows/Linux 见资料原文链接。</p>
+              </article>
+              <article class="kb-tool">
+                <header><h3>IP 雷达 5</h3><span>流量定位</span></header>
+                <p>查看本机进程的远端 IP 与流量速率。微信/游戏等进程可双击展开看交互 IP，配合 tcping/ping 验证质差。</p>
+                <p><strong>替代：</strong>任务管理器 → 性能 → 资源监视器 → 网络；或火绒 → 流量监控 → 查看链接。</p>
+              </article>
+              <article class="kb-tool">
+                <header><h3>浏览器开发者工具（F12）</h3><span>Chrome</span></header>
+                <ul>
+                  <li>勾选 Disable cache</li>
+                  <li>开 Remote Address 列</li>
+                  <li>看 HTTP 状态码、首屏时间、失败的 xhr 请求</li>
+                  <li>HOST 绑定测试：<code>C:\WINDOWS\system32\drivers\etc\hosts</code> 加 <code>IP 域名</code></li>
+                </ul>
+              </article>
+              <article class="kb-tool">
+                <header><h3>wireshark</h3><span>抓包</span></header>
+                <p><strong>常用过滤器：</strong></p>
+                <pre><code>dns
+ip.addr == 192.168.1.1
+tcp.port == 80
+udp.port == 53</code></pre>
+                <p>4G/机顶盒抓包：用笔记本放出 Wi-Fi 让手机连接抓；机顶盒经交换机端口镜像。</p>
+              </article>
+              <article class="kb-tool">
+                <header><h3>curl</h3><span>命令行</span></header>
+                <pre><code>curl -i https://www.sina.com
+curl -i -s https://www.sina.com | findstr HTTP
+curl -I -H "Host: www.sina.com" https://112.25.53.216</code></pre>
+              </article>
+              <article class="kb-tool">
+                <header><h3>nmap 端口扫描</h3><span>需安装</span></header>
+                <p>状态：Open / Closed / Filtered / Unfiltered / Open|filtered / Closed|filtered。常用 <code>nmap -p 80,443,8080 host</code> 或 <code>-p 1-65535</code> 全段扫描。</p>
+              </article>
+              <article class="kb-tool kb-tool-emph">
+                <header><h3>拨测网站三件套</h3><span>三网+境外节点</span></header>
+                <ul>
+                  <li><a href="https://www.itdog.cn/" target="_blank" rel="noopener">itdog.cn</a></li>
+                  <li><a href="http://www.17ce.com/" target="_blank" rel="noopener">17ce.com</a></li>
+                  <li><a href="https://www.boce.com/" target="_blank" rel="noopener">boce.com</a></li>
+                </ul>
+                <p>用来定位 GFW / 反诈 / 集团封堵 vs 单地域质差。</p>
+              </article>
+            </div>
+
+            <h3 class="kb-section-title">时延参考阈值</h3>
+            <div class="table-wrap">
+              <table class="kb-table">
+                <thead><tr><th>方向</th><th>参考时延</th></tr></thead>
+                <tbody>
+                  <tr><td>江苏 / 上海</td><td>10 ~ 25 ms</td></tr>
+                  <tr><td>北京 / 天津</td><td>30 ~ 50 ms</td></tr>
+                  <tr><td>四川 / 重庆</td><td>30 ~ 50 ms</td></tr>
+                  <tr><td>广东</td><td>40 ~ 50 ms</td></tr>
+                  <tr><td>香港</td><td>40 ~ 140 ms</td></tr>
+                  <tr><td>台湾</td><td>40 ~ 200 ms</td></tr>
+                  <tr><td>东南亚</td><td>100 ~ 150 ms</td></tr>
+                  <tr><td>日本 / 太平洋</td><td>100 ~ 200 ms</td></tr>
+                  <tr><td>欧洲</td><td>180 ~ 300 ms</td></tr>
+                  <tr><td>北美</td><td>280 ~ 300 ms</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h3 class="kb-section-title">封堵识别 + 客户回复口径</h3>
+            <div class="kb-grid-2">
+              <article class="kb-card">
+                <h4>GFW 封堵</h4>
+                <p>三网均不通，trace 不出网内，翻墙可访问（google/youtube/facebook 等）。</p>
+                <p><strong>口径：</strong>该域名被国家防火墙封堵，移动/电信/联通均无法访问。</p>
+                <p>申诉邮箱：<code>SZTSUSER@163.com</code></p>
+              </article>
+              <article class="kb-card">
+                <h4>江苏反诈封堵</h4>
+                <p>IP 封堵：ACK 被 RST、TCP trace 断点在苏州 5KE、省外移动正常。</p>
+                <p>域名封堵：解析为 61.160.148.90 / 221.228.32.13 / 127.0.0.1 / 0.0.0.0；或跳转 js96110.com.cn。</p>
+                <p><strong>口径：</strong>跳转江苏反诈页面，请联系 0512-96110。</p>
+              </article>
+              <article class="kb-card">
+                <h4>省公司黑洞路由</h4>
+                <p>trace 最后一跳为 <code>183.207.207.226</code>，为安全原因封堵。</p>
+                <p>申诉：发邮件至 <code>luominjie@js.chinamobile.com</code> 与 <code>SZTSUSER@163.com</code>，附 IP/域名/用途/无恶意申明。</p>
+              </article>
+              <article class="kb-card">
+                <h4>移动集团封堵</h4>
+                <p>页面 RST、tcping/ping 正常、全国移动均不通。</p>
+                <p>需向洛阳中心核实，符合解封要求会自动解封。</p>
+              </article>
+            </div>
+          </section>
+        </div>
+
+        <div class="kb-pane" data-kb-pane="iphone">
+          <section class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>iPhone 接入 Wi-Fi 后提示"无网络连接"</h2>
+                <p>来源：iPhone苹果手机接入Wi-Fi后提示无网络连接手机设置.doc</p>
+              </div>
+            </div>
+            <ol class="kb-steps">
+              <li>设置 → Wi-Fi → 已连接网络右侧 <strong>感叹号(!)</strong></li>
+              <li>关闭 <strong>低数据模式</strong></li>
+              <li>关闭 <strong>限制 IP 地址跟踪</strong></li>
+              <li>"配置 DNS"改为 <strong>手动</strong></li>
+              <li>添加 DNS 服务器 <code>114.114.114.114</code> 与 <code>223.6.6.6</code>，存储</li>
+            </ol>
+            <p class="kb-tip">仍异常：检查路由器 DNS 是否被改为非公网地址；尝试 <code>112.4.0.55</code>（江苏移动 DNS）或重启光猫。</p>
+          </section>
+        </div>
+
+        <div class="kb-pane" data-kb-pane="source">
+          <section class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>资料原文下载</h2>
+                <p>原始 docx / pptx / xlsx / pdf / png 文件，用于离线查阅与培训。</p>
+              </div>
+            </div>
+            <ul class="kb-source-list">
+              <li><a href="assets/source/装维资料/装维师傅工作流程.png" target="_blank" rel="noopener">装维师傅工作流程.png</a> — 工作主线脑图</li>
+              <li><a href="assets/source/装维资料/故障投诉类型与诊断路径 (1).png" target="_blank" rel="noopener">故障投诉类型与诊断路径.png</a> — 故障诊断脑图</li>
+              <li><a href="assets/source/装维资料/晨会流程zjl.docx" target="_blank" rel="noopener">晨会流程zjl.docx</a> — 晨会全脚本</li>
+              <li><a href="assets/source/装维资料/4.26家庭宽带网络中断排查要点.xlsx" target="_blank" rel="noopener">4.26家庭宽带网络中断排查要点.xlsx</a> — 5 大场景诊断表</li>
+              <li><a href="assets/source/装维资料/家庭宽带网络中断排查要点.xlsx" target="_blank" rel="noopener">家庭宽带网络中断排查要点.xlsx</a> — 早版排查表</li>
+              <li><a href="assets/source/装维资料/苏州移动（内容）投诉预处理.docx" target="_blank" rel="noopener">苏州移动（内容）投诉预处理.docx</a> — 工具命令与封堵判定</li>
+              <li><a href="assets/source/装维资料/入户开口话术.docx" target="_blank" rel="noopener">入户开口话术.docx</a> — 开场→转折→促成</li>
+              <li><a href="assets/source/装维资料/入户营销培训提纲(1).docx" target="_blank" rel="noopener">入户营销培训提纲.docx</a> — 三类拒绝应对</li>
+              <li><a href="assets/source/装维资料/FTTR入户推荐话术.docx" target="_blank" rel="noopener">FTTR入户推荐话术.docx</a> — 6 场景报价话术</li>
+              <li><a href="assets/source/装维资料/智慧装维入户营销话术(1).pptx" target="_blank" rel="noopener">智慧装维入户营销话术.pptx</a></li>
+              <li><a href="assets/source/装维资料/场景话术集.pptx" target="_blank" rel="noopener">场景话术集.pptx</a></li>
+              <li><a href="assets/source/装维资料/业务推荐和异议处理话术.pptx" target="_blank" rel="noopener">业务推荐和异议处理话术.pptx</a></li>
+              <li><a href="assets/source/装维资料/剧本草稿.xlsx" target="_blank" rel="noopener">剧本草稿.xlsx</a> — 工单/侦测脚本模板</li>
+              <li><a href="assets/source/装维资料/iPhone苹果手机接入Wi-Fi后提示无网络连接手机设置.doc" target="_blank" rel="noopener">iPhone Wi-Fi 无网络修复.doc</a></li>
+              <li><a href="assets/source/装维资料/AICP龙虾耳机场景.pdf" target="_blank" rel="noopener">AICP 龙虾耳机场景.pdf</a></li>
+            </ul>
+          </section>
+        </div>
+      </section>
+
+      <div id="mindmapLightbox" class="mindmap-lightbox" hidden aria-modal="true" role="dialog" aria-labelledby="mindmapLightboxTitle">
+        <div class="mindmap-lightbox-head">
+          <h2 id="mindmapLightboxTitle">脑图大图</h2>
+          <button id="mindmapLightboxClose" class="ghost" type="button">关闭</button>
+        </div>
+        <div class="mindmap-lightbox-body">
+          <img id="mindmapLightboxImage" alt="" />
+        </div>
+      </div>
+
       <section id="schedule" class="view" data-view="schedule">
         <section class="panel">
           <div class="panel-head">
@@ -197,6 +851,13 @@
               <p>场景描述、目标场景、录音文件和开发支撑点可以现场修改，保存后会作为后续记录的默认数据。</p>
             </div>
             <button type="button" id="addSceneBtn">新增场景</button>
+          </div>
+          <div class="naming-legend">
+            <strong>场景 ID 命名规则：</strong>
+            <code>[KB-]&lt;类型缩写&gt;-&lt;3位序号&gt;</code>
+            <span><code>KB-</code> = 知识库场景（培训/SOP），无前缀 = 演练场景</span>
+            <span><code>BZ</code> 基本保障 · <code>FW</code> 服务 · <code>SX</code> 随销 · <code>YC</code> 异常升级 · <code>LC</code> 装维流程 · <code>GZ</code> 故障诊断 · <code>TS</code> 投诉预处理</span>
+            <span class="legend-eg">示例：<code>BZ-001</code>（演练·基本保障）、<code>KB-SX-005</code>（知识库·随销）</span>
           </div>
           <form id="sceneForm" class="entry-form"></form>
           <section class="query-panel" aria-label="场景查询">
