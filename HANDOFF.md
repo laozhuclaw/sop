@@ -51,6 +51,9 @@ browser ───┘                                       └─ data/uploads/<
 | `f49076c` | `.gitignore` for `.aicp-admin-token` and `server/data`. |
 | pending after `b83d5ee` | Daily schedule + summary support via date-keyed shared state. |
 | `f5b8131` (2026-05-10) | **装维知识库 module + scene type expansion**. See "装维知识库 + 场景体系" section below. |
+| pending (2026-05-10) | **Knowledge-base file maintenance**: unified built-in + uploaded file list via `/api/kb-files`; uploaded files persist in `server/data/kb-files/`. |
+| pending (2026-05-10) | **穿越日程同步 AICP-01.xlsx**: rewrote `AICP_SCHEDULE_ROWS` and `defaultUsers` from the spreadsheet; replaced 10 photos in `assets/schedule/`; added `server/schedule-aicp-01.json` for `import-state.mjs`. |
+| pending (2026-05-10) | **Terminology**: every user-facing "演练" renamed to "穿越" (nav + hero + dictionary statuses/labels + form labels). Historical CHANGELOG entries left untouched. |
 
 `HANDOFF.md` (this file) is the fresh part.
 
@@ -91,16 +94,23 @@ Single mindmap was replaced with 8 tabs in `index.html`:
 
 Tab switching is `initKbTabs()` in `script.js`. Styles live under `/* ===== 装维知识库 ===== */` in `styles.css`.
 
+The "资料原文" tab is now driven by `/api/kb-files`:
+
+- **内置资料**: static copies under `assets/source/装维资料/`, shipped by `deploy.sh`. Images/PDF preview from the original file; Word/Excel/PPT preview through extracted text files in `assets/source/装维资料/extracted_text/`.
+- **维护上传**: runtime-managed files uploaded through `/api/kb-files`. Files and `manifest.json` live in `server/data/kb-files/`, so they are persistent and excluded from deploy overwrite. Browser preview is supported for images, PDF, TXT, Markdown, and CSV; uploaded Office formats remain downloadable unless a text preview pipeline is added later.
+
+Allowed KB upload extensions are `.pdf`, `.png`, `.jpg`, `.jpeg`, `.webp`,
+`.txt`, `.md`, `.csv`, `.doc`, `.docx`, `.xls`, `.xlsx`, `.ppt`, `.pptx`.
+The server blocks HTML/SVG/JS uploads, forces canonical response
+`Content-Type`, and applies `nosniff`/sandbox headers on preview/download.
+
 ### Scene type expansion
 
-`initialDictionaries.sceneTypes` grew from 4 to 7. The new server state already has the updated dictionary (version ≥ 40), so even a fresh browser sees all 7. If you wipe `server/data/state.json`, the fallback in `initialDictionaries` covers you.
+`initialDictionaries.sceneTypes` now keeps only the knowledge-base scene types used by `KB-*` scenes.
 
 | Code | Type | Purpose |
 | --- | --- | --- |
-| `BZ` | 基本保障 | Fault/installation drill scenes |
-| `FW` | 服务 | Billing / package / complaint drill |
 | `SX` | 随销 | Cross-selling drill |
-| `YC` | 异常升级 | Multi-intent / escalation |
 | `LC` | 装维流程 | Workflow SOP scenes (new) |
 | `GZ` | 故障诊断 | Fault diagnosis SOP scenes (new) |
 | `TS` | 投诉预处理 | Complaint pre-processing tools (new) |
@@ -110,23 +120,21 @@ A constant `SCENE_TYPE_CODES` near the top of `script.js` maps codes ↔ Chinese
 ### Scene ID naming rule
 
 ```
-[KB-]<2-letter type>-<3-digit seq>
+KB-<2-letter type>-<3-digit seq>
 ```
 
-- `KB-` prefix = 知识库 scene (training / SOP reference). No prefix = 演练 scene.
-- Examples: `BZ-001` (drill, basic guarantee), `KB-SX-005` (knowledge base, cross-selling).
+- `KB-` prefix is mandatory for all maintained scene ids. Legacy drill ids (`BZ-*`, `FW-*`, `SX-*`, `YC-*`) were removed from the shared scene list and dropdowns.
+- Examples: `KB-LC-001` (workflow), `KB-SX-005` (cross-selling).
 - The same legend is rendered in the 场景清单 page header (`.naming-legend` div) so users see it.
 - When adding scenes, **check the next free seq for that prefix** — IDs are not auto-generated. As of 2026-05-10:
-  - `BZ-001..003`, `FW-001..003`, `SX-001 / SX-003`, `YC-001`
   - `KB-SX-001..013`, `KB-LC-001..005`, `KB-GZ-001..005`, `KB-TS-001..004`
 
 ### Data import scripts
 
-Three JSON snapshots live in `server/`. They're for replaying the 2026-05-10 migration; running them again is idempotent (merge by id):
+Two JSON snapshots live in `server/`. They're for replaying the 2026-05-10 KB migration; running them again is idempotent (merge by id):
 
 | File | Contents |
 | --- | --- |
-| `server/演练-scenes.json` | 9 drill scenes (BZ/FW/SX/YC) — formerly only in `initialData.scenes`, now persisted server-side |
 | `server/kb-scenes.json` | 13 随销 KB scenes (KB-SX-001..013) |
 | `server/kb-scenes-v2.json` | 14 流程/故障/投诉 KB scenes (KB-LC/GZ/TS) **plus** `dictionaries.sceneTypes` update |
 
@@ -142,10 +150,9 @@ The import script merges by id for `scenes / records / audio / issues` and shall
 
 ### Production state checkpoint (2026-05-10)
 
-- Version: 43
-- Total scenes: 36 (basic 3 / service 3 / cross-sell 15 / escalation 1 / workflow 5 / fault 5 / complaint 4)
-- 0 dangling `relatedScenes` or `schedule` references
-- 5 legacy `SCN-TEST-*` scenes were deleted (they predated the naming rule and duplicated the BZ/FW/SX/YC drill scenes)
+- Version: 45+
+- Total scenes: 27 (`KB-SX` 13 / `KB-LC` 5 / `KB-GZ` 5 / `KB-TS` 4)
+- Legacy drill scene ids (`BZ-*`, `FW-*`, `SX-*`, `YC-*`) were removed from scenes, related-scene links, schedules, and sample audio rows.
 
 
 ## Running locally
@@ -266,7 +273,7 @@ When two AI assistants share this codebase:
    commit message.** State is shared and recovery requires the prior
    `version` to roll back via the `data.bak.*` snapshots on the server.
 6. **Naming rule is non-negotiable.** New scene IDs must match
-   `[KB-]<2-letter type>-<3-digit seq>`. If you need a new type, extend
+   `KB-<2-letter type>-<3-digit seq>`. If you need a new type, extend
    `SCENE_TYPE_CODES`, the dictionary, the legend in `index.html`, AND
    land the dictionary update via `import-state.mjs` so existing browsers
    pick it up.

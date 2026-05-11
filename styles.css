@@ -80,6 +80,18 @@ img {
   max-width: 100%;
 }
 
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .login-screen {
   position: fixed;
   inset: 0;
@@ -89,7 +101,7 @@ img {
   padding: 24px;
   background:
     linear-gradient(rgba(244, 247, 251, 0.88), rgba(244, 247, 251, 0.94)),
-    url("aicp-console-hero.png") center / cover;
+    url("aicp-console-hero.png?v=20260510-aicp-kb") center / cover;
 }
 
 .login-screen[hidden] {
@@ -802,12 +814,134 @@ body.lightbox-open {
   text-decoration: underline;
 }
 
+.kb-upload-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 46px;
+  border-radius: 8px;
+  padding: 11px 18px;
+  color: #fff;
+  background: var(--blue);
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.kb-maintenance-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.75fr);
+  gap: 16px;
+}
+
+.kb-file-list,
+.kb-preview-panel {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfdff;
+}
+
+.kb-file-list-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.kb-file-list-head h3 {
+  margin: 0;
+  color: var(--navy);
+  font-size: 16px;
+}
+
+.kb-file-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.kb-file-actions a,
+.kb-file-actions button {
+  min-height: 32px;
+  border-radius: 6px;
+  padding: 5px 9px;
+  font-size: 13px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.kb-file-actions a {
+  display: inline-flex;
+  align-items: center;
+  color: var(--navy);
+  border: 1px solid var(--line);
+  background: #fff;
+}
+
+.kb-file-actions .danger {
+  color: var(--red);
+}
+
+.kb-file-name {
+  display: grid;
+  gap: 2px;
+}
+
+.kb-file-name strong {
+  color: var(--navy);
+}
+
+.kb-file-name span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.kb-preview-body {
+  min-height: 320px;
+  padding: 14px;
+  color: var(--muted);
+}
+
+.kb-preview-body img,
+.kb-preview-body iframe {
+  width: 100%;
+  min-height: 320px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fff;
+}
+
+.kb-preview-body img {
+  height: auto;
+  min-height: 0;
+}
+
+.kb-preview-body pre {
+  max-height: 520px;
+  margin: 0;
+  padding: 12px;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--ink);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 @media (max-width: 1100px) {
   .kb-stage-grid,
   .kb-tool-grid,
   .kb-grid-3,
   .kb-grid-4 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .kb-maintenance-grid {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -1066,6 +1200,75 @@ td {
 
 tbody tr:hover {
   background: #f7fbff;
+}
+
+.schedule-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-self: flex-end;
+}
+
+.schedule-tab {
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--ink);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.schedule-tab:hover {
+  border-color: var(--navy);
+  color: var(--navy);
+}
+
+.schedule-tab.active {
+  background: var(--navy);
+  color: #fff;
+  border-color: var(--navy);
+}
+
+.schedule-table .col-date {
+  white-space: nowrap;
+  width: 90px;
+  font-weight: 700;
+  color: var(--navy);
+}
+
+.schedule-photos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  max-width: 160px;
+}
+
+.schedule-photo {
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 0;
+  background: #fff;
+  cursor: pointer;
+  overflow: hidden;
+  width: 48px;
+  height: 48px;
+}
+
+.schedule-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.schedule-table select[data-schedule-index] {
+  width: auto;
+  min-width: 96px;
+  padding: 6px 28px 6px 10px;
+  font-size: 14px;
 }
 
 .status {

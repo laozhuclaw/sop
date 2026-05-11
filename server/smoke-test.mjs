@@ -31,6 +31,14 @@ async function uploadVideo(id, bytes, fileName = "test.mp4") {
   return { status: res.status, body: await res.json() };
 }
 
+async function uploadKbFile(bytes, fileName = "kb-note.txt", type = "text/plain") {
+  const form = new FormData();
+  form.append("file", new Blob([bytes], { type }), fileName);
+  form.append("fileName", fileName);
+  const res = await fetch(`${BASE}/api/kb-files`, { method: "POST", body: form });
+  return { status: res.status, body: await res.json() };
+}
+
 function mergeStates(localData, serverData) {
   const merged = { ...serverData, ...localData };
   for (const key of ["scenes", "records", "audio", "issues"]) {
@@ -191,7 +199,67 @@ await t("video upload rejects text/html", async () => {
   assert.equal(res.status, 415);
 });
 
-// 9. Concurrent PUTs serialize correctly via the version protocol
+// 9. Knowledge-base file upload + preview + download + delete
+await t("kb built-in files list and preview", async () => {
+  const list = await fetch(`${BASE}/api/kb-files`);
+  assert.equal(list.status, 200);
+  const listed = await list.json();
+  const builtin = listed.files.filter((file) => file.source === "builtin");
+  assert.ok(builtin.length >= 15);
+
+  const doc = builtin.find((file) => file.fileName === "晨会流程zjl.docx");
+  assert.ok(doc, "晨会流程zjl.docx should be listed");
+  assert.equal(doc.previewKind, "text");
+
+  const preview = await fetch(`${BASE}/api/kb-files/${doc.id}/preview`);
+  assert.equal(preview.status, 200);
+  assert.match(preview.headers.get("content-type"), /^text\/plain/);
+  assert.equal(preview.headers.get("x-content-type-options"), "nosniff");
+  assert.match(await preview.text(), /晨会|装维|安全/);
+
+  const download = await fetch(`${BASE}/api/kb-files/${doc.id}/download`, { method: "HEAD" });
+  assert.equal(download.status, 200);
+  assert.match(download.headers.get("content-disposition"), /^attachment/);
+
+  const del = await fetch(`${BASE}/api/kb-files/${doc.id}`, { method: "DELETE" });
+  assert.equal(del.status, 403);
+});
+
+await t("kb file maintenance roundtrip", async () => {
+  const bytes = new TextEncoder().encode("苏州移动装维知识库\nAICP");
+  const up = await uploadKbFile(bytes, "装维知识库测试.txt");
+  assert.equal(up.status, 200);
+  assert.equal(up.body.fileName, "装维知识库测试.txt");
+  assert.equal(up.body.previewKind, "text");
+
+  const list = await fetch(`${BASE}/api/kb-files`);
+  assert.equal(list.status, 200);
+  const listed = await list.json();
+  assert.ok(listed.files.some((file) => file.id === up.body.id && file.source === "managed"));
+
+  const preview = await fetch(`${BASE}/api/kb-files/${up.body.id}/preview`);
+  assert.equal(preview.status, 200);
+  assert.equal(preview.headers.get("x-content-type-options"), "nosniff");
+  assert.match(preview.headers.get("content-type"), /^text\/plain/);
+  assert.equal(await preview.text(), "苏州移动装维知识库\nAICP");
+
+  const download = await fetch(`${BASE}/api/kb-files/${up.body.id}/download`);
+  assert.equal(download.status, 200);
+  assert.match(download.headers.get("content-disposition"), /^attachment/);
+
+  const del = await fetch(`${BASE}/api/kb-files/${up.body.id}`, { method: "DELETE" });
+  assert.equal(del.status, 200);
+  const after = await fetch(`${BASE}/api/kb-files/${up.body.id}/download`);
+  assert.equal(after.status, 404);
+});
+
+// 9b. Reject HTML masquerading as a KB document
+await t("kb file upload rejects text/html", async () => {
+  const up = await uploadKbFile(new TextEncoder().encode("<script>alert(1)</script>"), "evil.pdf", "text/html");
+  assert.equal(up.status, 415);
+});
+
+// 10. Concurrent PUTs serialize correctly via the version protocol
 await t("concurrent PUTs do not lose data", async () => {
   await reset();
   // both clients fetch v1
@@ -227,7 +295,7 @@ await t("concurrent PUTs do not lose data", async () => {
   assert.deepEqual(ids, ["S-A", "S-B"]);
 });
 
-// 10. Version endpoint is cheap + accurate
+// 11. Version endpoint is cheap + accurate
 await t("version endpoint", async () => {
   const { body: full } = await api("/api/state");
   const { body: ver } = await api("/api/state/version");

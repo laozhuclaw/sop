@@ -1,0 +1,113 @@
+{
+  "_note": "AICP-01.xlsx 同步快照（2026-05-10）。dailySchedules 与 users 走全量替换，dictionaries.roles 增加「运营」，import-state.mjs shallow-merge 时本地覆盖服务端。",
+  "dictionaries": {
+    "roles": ["网络", "市场", "装维", "营业厅", "开发", "运营", "管理"]
+  },
+  "users": [
+    { "name": "黄晓瑜", "phone": "", "unit": "苏州移动 网络部", "role": "管理", "loginAt": "" },
+    { "name": "邵新", "phone": "", "unit": "苏州移动 网络部", "role": "管理", "loginAt": "" },
+    { "name": "周岗", "phone": "", "unit": "苏州铁通", "role": "网络", "loginAt": "" },
+    { "name": "钟队长", "phone": "", "unit": "相城区装维", "role": "装维", "loginAt": "" },
+    { "name": "邓师傅", "phone": "", "unit": "园区装维", "role": "装维", "loginAt": "" },
+    { "name": "蔡俊", "phone": "18500039693", "unit": "好活", "role": "管理", "loginAt": "" },
+    { "name": "张明昊", "phone": "18662678967", "unit": "好活", "role": "开发", "loginAt": "" },
+    { "name": "王子寅", "phone": "13372152239", "unit": "好活", "role": "运营", "loginAt": "" },
+    { "name": "丁金辉", "phone": "18506245595", "unit": "好活", "role": "运营", "loginAt": "" },
+    { "name": "李明", "phone": "15895638281", "unit": "好活", "role": "管理", "loginAt": "" },
+    { "name": "AI", "phone": "19900000000", "unit": "好活", "role": "开发", "loginAt": "" }
+  ],
+  "dailySchedules": {
+    "2026-05-06": [
+      {
+        "date": "2026-05-06",
+        "period": "上午",
+        "time": "10:00-12:30",
+        "sceneId": "-",
+        "target": "AICP项目背景同步及装维工程师工作流程梳理",
+        "location": "苏州铁通4F会议室",
+        "owner": "黄晓瑜",
+        "participants": "苏州移动 网络部：黄晓瑜\n后台支撑*2+装维队长*1+装维队员*1\n好活科技：蔡俊、李明、张明昊、丁金辉、王子寅",
+        "status": "通过",
+        "outcome": "装维工程师日工作流",
+        "photos": [
+          "assets/schedule/ID_F88676759406428A9829A82272F2CFD9.jpg",
+          "assets/schedule/ID_3129EE96A2D744C48D3EF010DCC0AD28.jpg"
+        ]
+      },
+      {
+        "date": "2026-05-06",
+        "period": "下午",
+        "time": "13:30-16:30",
+        "sceneId": "-",
+        "target": "装维工程师场景梳理",
+        "location": "苏州铁通4F会议室",
+        "owner": "邵新",
+        "participants": "苏州移动 网络部：邵新\n装维队长*1+装维队员*1\n好活科技：蔡俊、丁金辉",
+        "status": "通过",
+        "outcome": "装维工程师日工作流",
+        "photos": ["assets/schedule/ID_6F7A73C35ECE4EB58049CEC02B95376C.jpg"]
+      },
+      {
+        "date": "2026-05-06",
+        "period": "下午",
+        "time": "14:30-16:00",
+        "sceneId": "-",
+        "target": "装维工程师随销产品梳理",
+        "location": "苏州铁通4F小会议室",
+        "owner": "邵新",
+        "participants": "苏州移动 网络部：邵新\n吴中营业员*3+后台支撑*1\n好活科技：张明昊、王子寅",
+        "status": "通过",
+        "outcome": "装维工程师随销产品梳理",
+        "photos": ["assets/schedule/ID_E197F26E464A4C5EB03BE775C2BD90BC.jpg"]
+      }
+    ],
+    "2026-05-07": [
+      {
+        "date": "2026-05-07",
+        "period": "上午",
+        "time": "9:30-12:00",
+        "sceneId": "-",
+        "target": "复盘及装维工程师故障单业务类型梳理",
+        "location": "苏州铁通4F会议室",
+        "owner": "邵新",
+        "participants": "苏州移动 网络部：邵新\n苏州铁通：周岗\n后台支撑*1\n好活科技：蔡俊、张明昊、丁金辉、王子寅",
+        "status": "通过",
+        "outcome": "5月6日调研纪要",
+        "photos": ["assets/schedule/ID_38AB2A1F99204936A78A519DC47D4670.jpg"]
+      },
+      {
+        "date": "2026-05-07",
+        "period": "下午",
+        "time": "13:30-15:30",
+        "sceneId": "-",
+        "target": "装维工程师故障单业务类型梳理",
+        "location": "苏州铁通4F会议室",
+        "owner": "黄晓瑜",
+        "participants": "苏州移动 网络部：黄晓瑜\n后台支撑*1\n好活科技：蔡俊、张明昊、丁金辉、王子寅",
+        "status": "通过",
+        "outcome": "装维工程师故障单排障方案梳理",
+        "photos": ["assets/schedule/ID_24DB9843DCC54F7C83CE7F9AC733AAAB.jpg"]
+      }
+    ],
+    "2026-05-08": [
+      {
+        "date": "2026-05-08",
+        "period": "下午",
+        "time": "15:00-20:00",
+        "sceneId": "-",
+        "target": "AICP项目背景同步及装维工程师场景演绎剧本同步",
+        "location": "苏州铁通4F会议室",
+        "owner": "蔡俊",
+        "participants": "好活科技：蔡俊、张明昊、丁金辉、王子寅\n相城区装维：钟队长\n园区装维：邓师傅",
+        "status": "通过",
+        "outcome": "装维工程师工作流程梳理图",
+        "photos": [
+          "assets/schedule/ID_0C75DD7978664C489C3F65690E9039B0.jpg",
+          "assets/schedule/ID_1FF8DCB64EDF475FBFC5316711534AFC.jpg",
+          "assets/schedule/ID_C3CD752E0E41483F84137C68A8EF7A28.jpg",
+          "assets/schedule/ID_BAB16E507BEA4C7881A6E5787560896F.jpg"
+        ]
+      }
+    ]
+  }
+}

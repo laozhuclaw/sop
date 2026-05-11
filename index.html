@@ -55,8 +55,8 @@
 
       <nav class="nav" aria-label="模块导航">
         <a class="is-active" href="#dashboard" data-view-link="dashboard">总览</a>
+        <a href="#schedule" data-view-link="schedule">穿越日程</a>
         <a href="#mindmap" data-view-link="mindmap">装维知识库</a>
-        <a href="#schedule" data-view-link="schedule">演练日程</a>
         <a href="#scenes" data-view-link="scenes">场景清单</a>
         <a href="#records" data-view-link="records">现场记录</a>
         <a href="#audio" data-view-link="audio">录音关键词</a>
@@ -64,7 +64,6 @@
         <a href="#people" data-view-link="people">人员列表</a>
         <a href="#dictionary" data-view-link="dictionary">字典表</a>
         <a href="#help" data-view-link="help">使用说明</a>
-        <a href="#summary" data-view-link="summary">当日总结</a>
       </nav>
 
       <div class="side-card">
@@ -76,7 +75,7 @@
     <main class="app">
       <header class="topbar">
         <div>
-          <p class="eyebrow">2026-05-06 苏州移动现场演练</p>
+          <p class="eyebrow">2026-05-06 苏州移动现场穿越</p>
           <h1>AICP 数据收集控制台</h1>
         </div>
         <div class="top-actions">
@@ -92,13 +91,13 @@
       <section id="dashboard" class="view is-active" data-view="dashboard">
         <div class="hero-panel">
           <div class="hero-copy">
-            <p class="eyebrow">从演练到训练数据</p>
-            <h2>把师傅一线场景和流程记录下来，形成可开发复用的数据资产。</h2>
+            <p class="eyebrow">从穿越到训练数据</p>
+            <h2>把师傅一线场景和流程形成知识库，训练AICP大模型，通过AICP耳机和眼镜对现场进行实时辅助，同时形成可开发复用的数据资产。</h2>
             <p>
               现场只需要围绕场景、录音、关键词、问题四件事填写。系统会把每轮穿越记录、录音文件、关键词和开发支撑点串起来。
             </p>
           </div>
-          <img src="aicp-console-hero.png" alt="AI 耳机入户营销场景" />
+          <img src="aicp-console-hero.png?v=20260510-aicp-kb" alt="苏州移动装维知识库 AICP 大模型场景" />
         </div>
 
         <div class="kpi-grid" aria-label="数据统计">
@@ -770,27 +769,44 @@ curl -I -H "Host: www.sina.com" https://112.25.53.216</code></pre>
           <section class="panel">
             <div class="panel-head">
               <div>
-                <h2>资料原文下载</h2>
-                <p>原始 docx / pptx / xlsx / pdf / png 文件，用于离线查阅与培训。</p>
+                <h2>知识库文件维护</h2>
+                <p>上传、预览、下载和删除装维知识库资料，形成可持续维护的训练素材库。</p>
               </div>
+              <label class="primary kb-upload-btn" for="kbFileInput">上传文件</label>
             </div>
-            <ul class="kb-source-list">
-              <li><a href="assets/source/装维资料/装维师傅工作流程.png" target="_blank" rel="noopener">装维师傅工作流程.png</a> — 工作主线脑图</li>
-              <li><a href="assets/source/装维资料/故障投诉类型与诊断路径 (1).png" target="_blank" rel="noopener">故障投诉类型与诊断路径.png</a> — 故障诊断脑图</li>
-              <li><a href="assets/source/装维资料/晨会流程zjl.docx" target="_blank" rel="noopener">晨会流程zjl.docx</a> — 晨会全脚本</li>
-              <li><a href="assets/source/装维资料/4.26家庭宽带网络中断排查要点.xlsx" target="_blank" rel="noopener">4.26家庭宽带网络中断排查要点.xlsx</a> — 5 大场景诊断表</li>
-              <li><a href="assets/source/装维资料/家庭宽带网络中断排查要点.xlsx" target="_blank" rel="noopener">家庭宽带网络中断排查要点.xlsx</a> — 早版排查表</li>
-              <li><a href="assets/source/装维资料/苏州移动（内容）投诉预处理.docx" target="_blank" rel="noopener">苏州移动（内容）投诉预处理.docx</a> — 工具命令与封堵判定</li>
-              <li><a href="assets/source/装维资料/入户开口话术.docx" target="_blank" rel="noopener">入户开口话术.docx</a> — 开场→转折→促成</li>
-              <li><a href="assets/source/装维资料/入户营销培训提纲(1).docx" target="_blank" rel="noopener">入户营销培训提纲.docx</a> — 三类拒绝应对</li>
-              <li><a href="assets/source/装维资料/FTTR入户推荐话术.docx" target="_blank" rel="noopener">FTTR入户推荐话术.docx</a> — 6 场景报价话术</li>
-              <li><a href="assets/source/装维资料/智慧装维入户营销话术(1).pptx" target="_blank" rel="noopener">智慧装维入户营销话术.pptx</a></li>
-              <li><a href="assets/source/装维资料/场景话术集.pptx" target="_blank" rel="noopener">场景话术集.pptx</a></li>
-              <li><a href="assets/source/装维资料/业务推荐和异议处理话术.pptx" target="_blank" rel="noopener">业务推荐和异议处理话术.pptx</a></li>
-              <li><a href="assets/source/装维资料/剧本草稿.xlsx" target="_blank" rel="noopener">剧本草稿.xlsx</a> — 工单/侦测脚本模板</li>
-              <li><a href="assets/source/装维资料/iPhone苹果手机接入Wi-Fi后提示无网络连接手机设置.doc" target="_blank" rel="noopener">iPhone Wi-Fi 无网络修复.doc</a></li>
-              <li><a href="assets/source/装维资料/AICP龙虾耳机场景.pdf" target="_blank" rel="noopener">AICP 龙虾耳机场景.pdf</a></li>
-            </ul>
+            <input id="kbFileInput" class="sr-only" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,.md,.csv,.doc,.docx,.xls,.xlsx,.ppt,.pptx" />
+            <div class="kb-maintenance-grid">
+              <section class="kb-file-list" aria-label="知识库维护文件">
+                <div class="kb-file-list-head">
+                  <h3>维护文件</h3>
+                  <button id="refreshKbFilesBtn" class="ghost" type="button">刷新</button>
+                </div>
+                <div class="table-wrap compact">
+                  <table class="kb-table">
+                    <thead>
+                      <tr>
+                        <th>文件</th>
+                        <th>大小</th>
+                        <th>上传时间</th>
+                        <th>操作</th>
+                      </tr>
+                    </thead>
+                    <tbody id="kbFilesBody">
+                      <tr><td colspan="4">正在加载知识库文件…</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+              <section class="kb-preview-panel" aria-live="polite">
+                <div class="kb-file-list-head">
+                  <h3 id="kbPreviewTitle">文件预览</h3>
+                  <button id="clearKbPreviewBtn" class="ghost" type="button">清空</button>
+                </div>
+                <div id="kbPreviewBody" class="kb-preview-body">
+                  <p>选择文件后可预览内置资料和维护上传文件。内置 Word、Excel、PPT 会显示抽取后的文本内容。</p>
+                </div>
+              </section>
+            </div>
           </section>
         </div>
       </section>
@@ -809,31 +825,30 @@ curl -I -H "Host: www.sina.com" https://112.25.53.216</code></pre>
         <section class="panel">
           <div class="panel-head">
             <div>
-              <h2>演练日程</h2>
-              <p>按日期维护每天的演练安排和推进状态，适合连续多天穿越。</p>
+              <h2>穿越日程</h2>
+              <p>按日期维护每天的穿越安排和推进状态，适合连续多天穿越。</p>
             </div>
           </div>
           <div class="toolbar">
-            <label>
-              <span>日程日期</span>
-              <input id="scheduleDate" type="date" />
-            </label>
+            <div id="scheduleDateTabs" class="schedule-tabs" role="tablist"></div>
             <label>
               <span>查询日程</span>
               <input id="scheduleSearch" placeholder="输入时间、场景ID、地点、牵头人" />
             </label>
           </div>
           <div class="table-wrap">
-            <table>
+            <table class="schedule-table">
               <thead>
                 <tr>
+                  <th class="col-date">日期</th>
                   <th>时段</th>
                   <th>时间</th>
-                  <th>场景ID</th>
                   <th>目标场景</th>
                   <th>地点</th>
                   <th>牵头人</th>
-                  <th>参演人员</th>
+                  <th>穿越人员</th>
+                  <th>会议成果</th>
+                  <th>照片</th>
                   <th>状态</th>
                 </tr>
               </thead>
@@ -854,10 +869,10 @@ curl -I -H "Host: www.sina.com" https://112.25.53.216</code></pre>
           </div>
           <div class="naming-legend">
             <strong>场景 ID 命名规则：</strong>
-            <code>[KB-]&lt;类型缩写&gt;-&lt;3位序号&gt;</code>
-            <span><code>KB-</code> = 知识库场景（培训/SOP），无前缀 = 演练场景</span>
-            <span><code>BZ</code> 基本保障 · <code>FW</code> 服务 · <code>SX</code> 随销 · <code>YC</code> 异常升级 · <code>LC</code> 装维流程 · <code>GZ</code> 故障诊断 · <code>TS</code> 投诉预处理</span>
-            <span class="legend-eg">示例：<code>BZ-001</code>（演练·基本保障）、<code>KB-SX-005</code>（知识库·随销）</span>
+            <code>KB-&lt;类型缩写&gt;-&lt;3位序号&gt;</code>
+            <span>所有场景统一使用 <code>KB-</code> 前缀，旧演练 ID 不再进入清单和下拉项。</span>
+            <span><code>SX</code> 随销 · <code>LC</code> 装维流程 · <code>GZ</code> 故障诊断 · <code>TS</code> 投诉预处理</span>
+            <span class="legend-eg">示例：<code>KB-LC-001</code>（装维流程）、<code>KB-SX-005</code>（随销）</span>
           </div>
           <form id="sceneForm" class="entry-form"></form>
           <section class="query-panel" aria-label="场景查询">
@@ -871,7 +886,7 @@ curl -I -H "Host: www.sina.com" https://112.25.53.216</code></pre>
             <div class="query-grid">
               <label>
                 <span>场景ID/目标场景/提交人</span>
-                <input id="sceneSearch" placeholder="如 BZ-001、宽带、邵新" />
+                <input id="sceneSearch" placeholder="如 KB-LC-001、宽带、邵新" />
               </label>
               <label>
                 <span>场景类型</span>
@@ -1033,7 +1048,7 @@ curl -I -H "Host: www.sina.com" https://112.25.53.216</code></pre>
                   <th>目标场景</th>
                   <th>问题类型</th>
                   <th>优先级</th>
-                  <th>是否影响演练</th>
+                  <th>是否影响穿越</th>
                   <th>状态</th>
                   <th>标签</th>
                   <th>关联录音</th>
@@ -1088,52 +1103,6 @@ curl -I -H "Host: www.sina.com" https://112.25.53.216</code></pre>
         </section>
       </section>
 
-      <section id="summary" class="view" data-view="summary">
-        <section class="panel">
-          <div class="panel-head">
-            <div>
-              <h2>当日总结</h2>
-              <p>每天收工前 15 分钟填写，让数据交付和次日优化有明确结论。</p>
-            </div>
-          </div>
-          <div class="toolbar">
-            <label>
-              <span>总结日期</span>
-              <input id="summaryDate" type="date" />
-            </label>
-          </div>
-          <div class="summary-grid">
-            <label>
-              实际完成场景数
-              <input id="summaryCompleted" type="number" min="0" />
-            </label>
-            <label>
-              最有价值录音文件 Top3
-              <textarea id="summaryTopAudio"></textarea>
-            </label>
-            <label>
-              最需要补的 AI 能力
-              <textarea id="summaryAiGap"></textarea>
-            </label>
-            <label>
-              现场最大流程卡点
-              <textarea id="summaryBlocker"></textarea>
-            </label>
-            <label>
-              需要明天优先复跑的场景
-              <textarea id="summaryRerun"></textarea>
-            </label>
-            <label>
-              次日改进动作
-              <textarea id="summaryNext"></textarea>
-            </label>
-          </div>
-          <div class="summary-actions">
-            <button id="saveSummaryBtn" type="button">保存总结</button>
-          </div>
-        </section>
-      </section>
-
       <section id="help" class="view" data-view="help">
         <section class="panel">
           <div class="panel-head">
@@ -1145,36 +1114,50 @@ curl -I -H "Host: www.sina.com" https://112.25.53.216</code></pre>
           <div class="help-grid">
             <article>
               <h3>1. 登录人员</h3>
-              <p>进入页面后先选择默认人员或手工填写姓名、手机号、单位和角色。后续新增的场景、现场记录、录音和问题都会自动带上当前人员。</p>
+              <p>进入页面先在登录卡片选择默认人员，或手工填写姓名、手机号、单位、角色（可选「网络/市场/装维/营业厅/开发/运营/管理」）。后续新增的场景、现场记录、录音和问题都会自动带上当前人员；点击右上角「切换人员」可更换登录身份。</p>
             </article>
             <article>
-              <h3>2. 场景维护</h3>
-              <p>在“场景清单”里可以新增、查询、修改和删除场景。重点维护目标场景、场景描述、录音文件名、关键词、需采集数据和开发数据支撑点。</p>
+              <h3>2. 穿越日程</h3>
+              <p>「穿越日程」页顶部 tab 可在「全部 / 5月6日 / 5月7日 / 5月8日」之间切换：「全部」展示所有日程并多出日期列；点击具体日期 tab 仅展示当天行。每行包含时段、时间、目标场景、地点、牵头人、穿越人员、会议成果、照片缩略图（点击可放大）和状态下拉。状态修改即时同步到服务端。</p>
             </article>
             <article>
-              <h3>3. 现场记录</h3>
-              <p>每跑一轮穿越，在“现场记录”新增一条。录音文件名要和录音关键词里的文件名保持一致，便于后续用大模型分析。</p>
+              <h3>3. 装维知识库</h3>
+              <p>「装维知识库」整合了苏州移动装维资料，分 8 个标签页：脑图速览、装维流程、晨会脚本、故障诊断、入户话术、投诉预处理、iPhone Wi-Fi、资料原文。其中「资料原文」既展示内置 docx/pptx/xlsx/pdf/png 原件，也可在「维护文件」区上传 / 下载 / 删除自有资料，文件存储在 server/data/kb-files/ 不会被部署覆盖。</p>
             </article>
             <article>
-              <h3>4. 录音上传、播放和下载</h3>
-              <p>在“录音关键词”点击新增录音，选择本地 .mp3 文件并保存。保存后可以在表格中直接播放，也可以点击下载。音频文件保存在当前浏览器本地数据库，不会进入 CSV。</p>
+              <h3>4. 场景维护</h3>
+              <p>「场景清单」里可以新增、查询、修改和删除场景。场景 ID 命名规则 <code>KB-&lt;类型缩写&gt;-&lt;3位序号&gt;</code>（SX 随销 / LC 装维流程 / GZ 故障诊断 / TS 投诉预处理）。重点维护目标场景、场景描述、录音文件名、关键词、需采集数据和开发数据支撑点。</p>
             </article>
             <article>
-              <h3>5. 问题与字典</h3>
-              <p>现场发现的知识、流程、话术、接口问题记录到“问题需求”。下拉选项在“字典表”维护，每行一个选项，保存后全站同步。</p>
+              <h3>5. 现场记录</h3>
+              <p>每跑一轮穿越，在「现场记录」新增一条。录音文件名要和录音关键词里的文件名保持一致，便于后续用大模型分析。系统会自动带上当前登录人员作为采集人。</p>
             </article>
             <article>
-              <h3>6. 数据导出</h3>
-              <p>右上角支持导出 JSON 和 CSV。JSON 用于完整备份浏览器里的结构化数据，CSV 用于给团队汇总分析。音频文件需通过页面中的下载入口单独保存。</p>
+              <h3>6. 录音上传、播放和下载</h3>
+              <p>在「录音关键词」点击新增录音，选择本地 .mp3 文件并保存。保存后可以在表格中直接播放，也可以点击下载。音频文件保存在当前浏览器本地数据库（IndexedDB），不会进入 CSV，也不会随 JSON 导出，跨浏览器需重新上传。</p>
             </article>
             <article>
-              <h3>7. GitHub 地址</h3>
-              <p>本系统代码统一维护在 GitHub 仓库。后续功能修改、版本记录和服务器部署都以该仓库为准。</p>
+              <h3>7. 问题与字典</h3>
+              <p>现场发现的知识、流程、话术、接口问题记录到「问题需求」。下拉选项（场景类型、状态、角色、单位等）在「字典表」维护，每行一个选项，保存后全站同步生效。</p>
+            </article>
+            <article>
+              <h3>8. 数据导出</h3>
+              <p>右上角支持导出 JSON 和 CSV。JSON 用于完整备份结构化数据；CSV 用于给团队汇总分析。所有结构化数据通过 `/api/state` 在多人浏览器之间共享，version 字段防止并发覆盖。</p>
+            </article>
+            <article>
+              <h3>9. 部署与运维</h3>
+              <p>开发人员按以下流程发布：</p>
+              <pre><code>cd console
+SSHPASS='&lt;阿里云 root 密码&gt;' ./deploy.sh
+# 如需更新 dailySchedules / users / dictionaries
+cd server
+node import-state.mjs schedule-aicp-01.json http://47.102.216.22/sop</code></pre>
+              <p>线上访问：<a href="http://47.102.216.22/sop/" target="_blank" rel="noopener">http://47.102.216.22/sop/</a>。若页面未更新先强制刷新浏览器（Cmd/Ctrl+Shift+R），再检查 systemd 是否已 restart aicp-sop.service。</p>
+            </article>
+            <article>
+              <h3>10. GitHub 地址</h3>
+              <p>本系统代码统一维护在 GitHub 仓库，所有变更走 CHANGELOG.md + HANDOFF.md 双记录。</p>
               <pre><code>https://github.com/laozhuclaw/sop</code></pre>
-            </article>
-            <article>
-              <h3>8. 线上地址</h3>
-              <p>部署完成后访问 http://47.102.216.22/sop/。如果页面没有更新，先强制刷新浏览器，再检查 Nginx 是否已重载。</p>
             </article>
           </div>
         </section>

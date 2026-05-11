@@ -5,7 +5,7 @@
  *
  * Responsibilities:
  *  - Persist a single shared `state` object (the same shape the frontend already uses).
- *  - Store uploaded .mp3 audio blobs and .mp4 video blobs on the filesystem.
+ *  - Store uploaded .mp3 audio blobs, .mp4 video blobs, and KB files on disk.
  *  - Serve the static frontend (index.html, script.js, styles.css, image).
  *
  * Concurrency model: optimistic versioning.
@@ -19,6 +19,8 @@
  *   - data/uploads/<audioId>.meta.json (originalName, mime, size, uploadedAt)
  *   - data/videos/<audioId>.mp4        (binary)
  *   - data/videos/<audioId>.meta.json  (originalName, mime, size, uploadedAt)
+ *   - data/kb-files/manifest.json      (uploaded knowledge-base files)
+ *   - data/kb-files/<fileId>.<ext>      (binary/text source file)
  */
 
 const express = require("express");
@@ -32,18 +34,25 @@ const ROOT = path.resolve(__dirname, "..");
 const DATA_DIR = path.join(__dirname, "data");
 const UPLOAD_DIR = path.join(DATA_DIR, "uploads");
 const VIDEO_DIR = path.join(DATA_DIR, "videos");
+const KB_FILE_DIR = path.join(DATA_DIR, "kb-files");
+const KB_SOURCE_DIR = path.join(ROOT, "assets", "source", "装维资料");
+const KB_SOURCE_TEXT_DIR = path.join(KB_SOURCE_DIR, "extracted_text");
 const STATE_FILE = path.join(DATA_DIR, "state.json");
 const STATE_TMP = path.join(DATA_DIR, "state.json.tmp");
+const KB_MANIFEST_FILE = path.join(KB_FILE_DIR, "manifest.json");
+const KB_MANIFEST_TMP = path.join(KB_FILE_DIR, "manifest.json.tmp");
 
 const PORT = Number(process.env.PORT || 3000);
 const HOST = process.env.HOST || "0.0.0.0";
 const BODY_LIMIT = process.env.BODY_LIMIT || "20mb";
 const MAX_AUDIO_MB = Number(process.env.MAX_AUDIO_MB || 50);
 const MAX_VIDEO_MB = Number(process.env.MAX_VIDEO_MB || 300);
+const MAX_KB_FILE_MB = Number(process.env.MAX_KB_FILE_MB || 80);
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || ""; // optional: required for /api/reset
 
 fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 fs.mkdirSync(VIDEO_DIR, { recursive: true });
+fs.mkdirSync(KB_FILE_DIR, { recursive: true });
 
 // --- in-process write lock for state.json ----------------------------------
 // Express handles requests on a single thread, but writes go through fs which
@@ -54,6 +63,13 @@ function withStateLock(fn) {
   const next = stateChain.then(fn, fn);
   // Don't let one rejection poison the chain.
   stateChain = next.catch(() => {});
+  return next;
+}
+
+let kbFileChain = Promise.resolve();
+function withKbFileLock(fn) {
+  const next = kbFileChain.then(fn, fn);
+  kbFileChain = next.catch(() => {});
   return next;
 }
 
@@ -106,6 +122,15 @@ function videoPaths(id) {
   };
 }
 
+function sanitizeFileName(rawName, fallback = "knowledge-file") {
+  const safe = String(rawName || fallback)
+    .replace(/[\\/\x00-\x1f]/g, "_")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 200);
+  return safe || fallback;
+}
+
 // Allowed mime types on upload. Anything else is rejected to keep the
 // served content from ever being interpreted as HTML/JS by the browser
 // (which would be stored XSS on the same origin).
@@ -118,6 +143,31 @@ const ALLOWED_VIDEO_MIME = new Set([
   "video/mp4",
   "application/mp4",
   "application/octet-stream", // some browsers send this for .mp4
+]);
+
+const KB_FILE_TYPES = new Map([
+  [".pdf", { mimeType: "application/pdf", previewKind: "pdf" }],
+  [".png", { mimeType: "image/png", previewKind: "image" }],
+  [".jpg", { mimeType: "image/jpeg", previewKind: "image" }],
+  [".jpeg", { mimeType: "image/jpeg", previewKind: "image" }],
+  [".webp", { mimeType: "image/webp", previewKind: "image" }],
+  [".txt", { mimeType: "text/plain; charset=utf-8", previewKind: "text" }],
+  [".md", { mimeType: "text/markdown; charset=utf-8", previewKind: "text" }],
+  [".csv", { mimeType: "text/csv; charset=utf-8", previewKind: "text" }],
+  [".doc", { mimeType: "application/msword", previewKind: "office" }],
+  [".docx", { mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", previewKind: "office" }],
+  [".xls", { mimeType: "application/vnd.ms-excel", previewKind: "office" }],
+  [".xlsx", { mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", previewKind: "office" }],
+  [".ppt", { mimeType: "application/vnd.ms-powerpoint", previewKind: "office" }],
+  [".pptx", { mimeType: "application/vnd.openxmlformats-officedocument.presentationml.presentation", previewKind: "office" }],
+]);
+
+const BLOCKED_KB_MIME = new Set([
+  "text/html",
+  "application/xhtml+xml",
+  "image/svg+xml",
+  "application/javascript",
+  "text/javascript",
 ]);
 
 // Defense-in-depth headers attached to every blob response so even if
@@ -222,9 +272,9 @@ app.post("/api/reset", async (req, res) => {
     await withStateLock(async () => {
       await writeStateAtomically(emptyState());
     });
-    // also wipe uploaded media
+    // also wipe uploaded media and maintained KB files
     await Promise.all(
-      [UPLOAD_DIR, VIDEO_DIR].map(async (dir) => {
+      [UPLOAD_DIR, VIDEO_DIR, KB_FILE_DIR].map(async (dir) => {
         const entries = await fsp.readdir(dir).catch(() => []);
         await Promise.all(entries.map((name) => fsp.unlink(path.join(dir, name)).catch(() => {})));
       }),
@@ -428,6 +478,225 @@ app.delete("/api/video/:id", async (req, res) => {
     res.json({ ok: true });
   } catch (err) {
     console.error("video delete failed", err);
+    res.status(500).json({ error: "delete_failed" });
+  }
+});
+
+// --- API: knowledge-base files ----------------------------------------------
+const uploadKbFile = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: MAX_KB_FILE_MB * 1024 * 1024 },
+});
+
+async function readKbManifest() {
+  try {
+    const raw = await fsp.readFile(KB_MANIFEST_FILE, "utf8");
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object" || !Array.isArray(parsed.files)) {
+      return { files: [] };
+    }
+    return parsed;
+  } catch (err) {
+    if (err.code === "ENOENT") return { files: [] };
+    throw err;
+  }
+}
+
+async function writeKbManifestAtomically(manifest) {
+  await fsp.writeFile(KB_MANIFEST_TMP, JSON.stringify(manifest, null, 2), "utf8");
+  await fsp.rename(KB_MANIFEST_TMP, KB_MANIFEST_FILE);
+}
+
+function kbFileStoragePath(file) {
+  const safeId = String(file?.id || "").replace(/[^A-Za-z0-9_\-]/g, "");
+  const ext = String(file?.extension || "").toLowerCase();
+  if (!safeId || !KB_FILE_TYPES.has(ext)) throw new Error("invalid kb file");
+  return path.join(KB_FILE_DIR, `${safeId}${ext}`);
+}
+
+function publicKbFile(file) {
+  return {
+    id: file.id,
+    source: file.source || "managed",
+    fileName: file.fileName,
+    extension: file.extension,
+    mimeType: file.mimeType,
+    previewKind: file.previewKind,
+    size: file.size,
+    checksum: file.checksum,
+    uploadedAt: file.uploadedAt,
+  };
+}
+
+async function listKbSourceFiles() {
+  const entries = await fsp.readdir(KB_SOURCE_DIR, { withFileTypes: true }).catch(() => []);
+  const files = [];
+  for (const entry of entries) {
+    if (!entry.isFile()) continue;
+    const fileName = entry.name;
+    const extension = path.extname(fileName).toLowerCase();
+    const type = KB_FILE_TYPES.get(extension);
+    if (!type) continue;
+    const originalPath = path.join(KB_SOURCE_DIR, fileName);
+    const textPath = path.join(KB_SOURCE_TEXT_DIR, `${fileName}.txt`);
+    const [stat, textStat] = await Promise.all([
+      fsp.stat(originalPath).catch(() => null),
+      fsp.stat(textPath).catch(() => null),
+    ]);
+    if (!stat) continue;
+    const hasTextPreview = Boolean(textStat);
+    files.push({
+      id: `SRC-${crypto.createHash("sha1").update(fileName).digest("hex").slice(0, 16)}`,
+      source: "builtin",
+      fileName,
+      extension,
+      mimeType: type.mimeType,
+      previewKind: hasTextPreview && type.previewKind === "office" ? "text" : type.previewKind,
+      originalPreviewKind: type.previewKind,
+      size: stat.size,
+      checksum: "",
+      uploadedAt: stat.mtime.toISOString(),
+      builtinPath: originalPath,
+      textPreviewPath: hasTextPreview ? textPath : "",
+    });
+  }
+  return files.sort((a, b) => a.fileName.localeCompare(b.fileName, "zh-CN"));
+}
+
+async function findKbSourceFile(id) {
+  const files = await listKbSourceFiles();
+  return files.find((file) => file.id === id) || null;
+}
+
+async function findKbFile(id) {
+  const safeId = String(id || "").replace(/[^A-Za-z0-9_\-]/g, "");
+  if (!safeId) return null;
+  if (safeId.startsWith("SRC-")) return findKbSourceFile(safeId);
+  const manifest = await readKbManifest();
+  return manifest.files.find((file) => file.id === safeId) || null;
+}
+
+function setKbFileHeaders(res, file, disposition) {
+  res.setHeader("Content-Type", file.mimeType);
+  res.setHeader("Content-Disposition", `${disposition}; filename*=UTF-8''${encodeURIComponent(file.fileName)}`);
+  if (file.checksum) res.setHeader("X-KB-File-Checksum", file.checksum);
+  applyBlobSafetyHeaders(res);
+}
+
+app.get("/api/kb-files", async (_req, res) => {
+  try {
+    const [manifest, sourceFiles] = await Promise.all([readKbManifest(), listKbSourceFiles()]);
+    const managedFiles = manifest.files
+      .slice()
+      .sort((a, b) => String(b.uploadedAt || "").localeCompare(String(a.uploadedAt || "")))
+      .map(publicKbFile);
+    const files = [...sourceFiles.map(publicKbFile), ...managedFiles];
+    res.json({ files });
+  } catch (err) {
+    console.error("kb files list failed", err);
+    res.status(500).json({ error: "list_failed" });
+  }
+});
+
+app.post("/api/kb-files", uploadKbFile.single("file"), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: "file_required" });
+  const fileName = sanitizeFileName(req.body.fileName || req.file.originalname, "knowledge-file");
+  const extension = path.extname(fileName).toLowerCase();
+  const type = KB_FILE_TYPES.get(extension);
+  if (!type) {
+    return res.status(415).json({ error: "unsupported_file_type", extension });
+  }
+  if (BLOCKED_KB_MIME.has(req.file.mimetype)) {
+    return res.status(415).json({ error: "unsupported_media_type", mimetype: req.file.mimetype });
+  }
+
+  try {
+    const saved = await withKbFileLock(async () => {
+      const manifest = await readKbManifest();
+      const id = `KBF-${crypto.randomUUID().replace(/-/g, "").slice(0, 16)}`;
+      const uploadedAt = new Date().toISOString();
+      const checksum = crypto.createHash("sha1").update(req.file.buffer).digest("hex");
+      const file = {
+        id,
+        fileName,
+        extension,
+        mimeType: type.mimeType,
+        previewKind: type.previewKind,
+        size: req.file.size,
+        checksum,
+        uploadedAt,
+      };
+      await fsp.writeFile(kbFileStoragePath(file), req.file.buffer);
+      manifest.files = [file, ...manifest.files.filter((item) => item.id !== id)];
+      await writeKbManifestAtomically(manifest);
+      return file;
+    });
+    res.json(publicKbFile(saved));
+  } catch (err) {
+    console.error("kb file upload failed", err);
+    res.status(500).json({ error: "upload_failed" });
+  }
+});
+
+app.get("/api/kb-files/:id/download", async (req, res) => {
+  try {
+    const file = await findKbFile(req.params.id);
+    if (!file) return res.status(404).json({ error: "not_found" });
+    const blob = file.source === "builtin" ? file.builtinPath : kbFileStoragePath(file);
+    const stat = await fsp.stat(blob).catch(() => null);
+    if (!stat) return res.status(404).json({ error: "not_found" });
+    res.setHeader("Content-Length", stat.size);
+    setKbFileHeaders(res, file, "attachment");
+    fs.createReadStream(blob).pipe(res);
+  } catch (err) {
+    console.error("kb file download failed", err);
+    res.status(500).json({ error: "download_failed" });
+  }
+});
+
+app.get("/api/kb-files/:id/preview", async (req, res) => {
+  try {
+    const file = await findKbFile(req.params.id);
+    if (!file) return res.status(404).json({ error: "not_found" });
+    if (!["image", "pdf", "text"].includes(file.previewKind)) {
+      return res.status(415).json({ error: "preview_not_supported", previewKind: file.previewKind });
+    }
+    const blob = file.source === "builtin" && file.textPreviewPath
+      ? file.textPreviewPath
+      : file.source === "builtin"
+        ? file.builtinPath
+        : kbFileStoragePath(file);
+    const stat = await fsp.stat(blob).catch(() => null);
+    if (!stat) return res.status(404).json({ error: "not_found" });
+    res.setHeader("Content-Length", stat.size);
+    setKbFileHeaders(
+      res,
+      file.textPreviewPath ? { ...file, mimeType: "text/plain; charset=utf-8" } : file,
+      "inline",
+    );
+    fs.createReadStream(blob).pipe(res);
+  } catch (err) {
+    console.error("kb file preview failed", err);
+    res.status(500).json({ error: "preview_failed" });
+  }
+});
+
+app.delete("/api/kb-files/:id", async (req, res) => {
+  try {
+    if (String(req.params.id || "").startsWith("SRC-")) {
+      return res.status(403).json({ error: "builtin_file_cannot_be_deleted" });
+    }
+    const deleted = await withKbFileLock(async () => {
+      const manifest = await readKbManifest();
+      const file = manifest.files.find((item) => item.id === req.params.id);
+      manifest.files = manifest.files.filter((item) => item.id !== req.params.id);
+      if (file) await fsp.unlink(kbFileStoragePath(file)).catch(() => {});
+      await writeKbManifestAtomically(manifest);
+      return file;
+    });
+    res.json({ ok: true, deleted: Boolean(deleted) });
+  } catch (err) {
+    console.error("kb file delete failed", err);
     res.status(500).json({ error: "delete_failed" });
   }
 });

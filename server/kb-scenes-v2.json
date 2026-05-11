@@ -1,6 +1,11 @@
 {
   "dictionaries": {
-    "sceneTypes": ["基本保障", "服务", "随销", "异常升级", "装维流程", "故障诊断", "投诉预处理"]
+    "sceneTypes": [
+      "随销",
+      "装维流程",
+      "故障诊断",
+      "投诉预处理"
+    ]
   },
   "scenes": [
     {
@@ -31,7 +36,7 @@
       "status": "未开始",
       "note": "装机/故障两类工单流程一致，故障要多查近三月投诉",
       "tags": "装维知识库;装维流程",
-      "relatedScenes": "KB-LC-001;KB-LC-003;BZ-002"
+      "relatedScenes": "KB-LC-001;KB-LC-003"
     },
     {
       "id": "KB-LC-003",
@@ -46,7 +51,7 @@
       "status": "未开始",
       "note": "光功率正常区间约 -8dBm 到 -25dBm",
       "tags": "装维知识库;装维流程",
-      "relatedScenes": "KB-LC-002;KB-LC-004;SX-001"
+      "relatedScenes": "KB-LC-002;KB-LC-004"
     },
     {
       "id": "KB-LC-004",
@@ -76,7 +81,7 @@
       "status": "未开始",
       "note": "画像字段会反哺到下次入户前的提醒",
       "tags": "装维知识库;装维流程",
-      "relatedScenes": "KB-LC-004;SX-001"
+      "relatedScenes": "KB-LC-004"
     },
     {
       "id": "KB-GZ-001",
@@ -91,7 +96,7 @@
       "status": "未开始",
       "note": "白天正常晚上慢的场景常见于运营商出口拥塞",
       "tags": "装维知识库;故障诊断",
-      "relatedScenes": "KB-TS-001;KB-TS-004;BZ-001"
+      "relatedScenes": "KB-TS-001;KB-TS-004"
     },
     {
       "id": "KB-GZ-002",
@@ -106,7 +111,7 @@
       "status": "未开始",
       "note": "团战 460ms 是经典痛点话术锚点",
       "tags": "装维知识库;故障诊断",
-      "relatedScenes": "KB-SX-005;KB-SX-006;SX-003"
+      "relatedScenes": "KB-SX-005;KB-SX-006"
     },
     {
       "id": "KB-GZ-003",
@@ -121,7 +126,7 @@
       "status": "未开始",
       "note": "晚高峰卡顿多为运营商出口或 CDN 调度问题",
       "tags": "装维知识库;故障诊断",
-      "relatedScenes": "BZ-003;KB-TS-004"
+      "relatedScenes": "KB-TS-004"
     },
     {
       "id": "KB-GZ-004",
@@ -136,7 +141,7 @@
       "status": "未开始",
       "note": "卧室/卫生间/阳台是典型弱覆盖区",
       "tags": "装维知识库;故障诊断",
-      "relatedScenes": "KB-SX-004;KB-SX-006;SX-003"
+      "relatedScenes": "KB-SX-004;KB-SX-006"
     },
     {
       "id": "KB-GZ-005",
@@ -151,7 +156,7 @@
       "status": "未开始",
       "note": "光功率超 -25dBm 一般要换尾纤或检查室内冷接",
       "tags": "装维知识库;故障诊断",
-      "relatedScenes": "BZ-001;KB-TS-001"
+      "relatedScenes": "KB-TS-001"
     },
     {
       "id": "KB-TS-001",

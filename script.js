@@ -10,6 +10,7 @@ let lastSyncedAt = "";
 let saveQueue = Promise.resolve();
 let pollTimer = null;
 const POLL_INTERVAL_MS = 4000;
+let kbFiles = [];
 
 function todayKey() {
   const date = new Date();
@@ -18,8 +19,8 @@ function todayKey() {
   return `${date.getFullYear()}-${month}-${day}`;
 }
 
-let activeScheduleDate = todayKey();
-let activeSummaryDate = todayKey();
+const ALL_SCHEDULE_DATES = "ALL";
+let activeScheduleDate = ALL_SCHEDULE_DATES;
 
 function apiUrl(path) {
   return `${API_BASE}/${path.replace(/^\/+/, "")}`;
@@ -45,31 +46,132 @@ const EMPTY_USER = {
   loginAt: "",
 };
 
+// 注意：phone 为空时 mergeUsers 会用 `name-unit` 当 key 去重；
+// 不要把多人的 phone 占位填成同一个字符串（如 "待补充"），否则会互相吞并。
 const defaultUsers = [
-  { name: "蔡俊", phone: "18500039693", unit: "好活", role: "开发", loginAt: "" },
+  { name: "黄晓瑜", phone: "", unit: "苏州移动 网络部", role: "管理", loginAt: "" },
+  { name: "邵新", phone: "", unit: "苏州移动 网络部", role: "管理", loginAt: "" },
+  { name: "周岗", phone: "", unit: "苏州铁通", role: "网络", loginAt: "" },
+  { name: "钟队长", phone: "", unit: "相城区装维", role: "装维", loginAt: "" },
+  { name: "邓师傅", phone: "", unit: "园区装维", role: "装维", loginAt: "" },
+  { name: "蔡俊", phone: "18500039693", unit: "好活", role: "管理", loginAt: "" },
   { name: "张明昊", phone: "18662678967", unit: "好活", role: "开发", loginAt: "" },
-  { name: "王子寅", phone: "13372152239", unit: "好活", role: "开发", loginAt: "" },
-  { name: "邵新", phone: "待补充", unit: "苏州移动 网络部", role: "网络", loginAt: "" },
+  { name: "王子寅", phone: "13372152239", unit: "好活", role: "运营", loginAt: "" },
+  { name: "丁金辉", phone: "18506245595", unit: "好活", role: "运营", loginAt: "" },
+  { name: "李明", phone: "15895638281", unit: "好活", role: "管理", loginAt: "" },
   { name: "AI", phone: "19900000000", unit: "好活", role: "开发", loginAt: "" },
 ];
 
-// 场景 ID 命名规则：[KB-]<类型缩写>-<3位序号>
-//   KB- 表示知识库场景（培训/SOP），无前缀表示演练场景
-//   类型缩写：BZ=基本保障 FW=服务 SX=随销 YC=异常升级 LC=装维流程 GZ=故障诊断 TS=投诉预处理
-//   示例：BZ-001（演练·基本保障）、KB-SX-005（知识库·随销）
+// 场景 ID 命名规则：KB-<类型缩写>-<3位序号>
+//   所有场景统一使用 KB- 前缀，避免旧演练 ID 混入下拉项。
+//   类型缩写：LC=装维流程 GZ=故障诊断 TS=投诉预处理 SX=随销
+//   示例：KB-LC-001（知识库·装维流程）、KB-SX-005（知识库·随销）
 const SCENE_TYPE_CODES = {
-  BZ: "基本保障",
-  FW: "服务",
   SX: "随销",
-  YC: "异常升级",
   LC: "装维流程",
   GZ: "故障诊断",
   TS: "投诉预处理",
 };
 
+// 穿越日程数据来源：/Users/zhujmac/AICP/SOP/kb/AICP-01.xlsx（2026-05-10 同步）
+const AICP_SCHEDULE_ROWS = [
+  {
+    date: "2026-05-06",
+    period: "上午",
+    time: "10:00-12:30",
+    sceneId: "-",
+    target: "AICP项目背景同步及装维工程师工作流程梳理",
+    location: "苏州铁通4F会议室",
+    owner: "黄晓瑜",
+    participants: "苏州移动 网络部：黄晓瑜\n后台支撑*2+装维队长*1+装维队员*1\n好活科技：蔡俊、李明、张明昊、丁金辉、王子寅",
+    status: "通过",
+    outcome: "装维工程师日工作流",
+    photos: [
+      "assets/schedule/ID_F88676759406428A9829A82272F2CFD9.jpg",
+      "assets/schedule/ID_3129EE96A2D744C48D3EF010DCC0AD28.jpg",
+    ],
+  },
+  {
+    date: "2026-05-06",
+    period: "下午",
+    time: "13:30-16:30",
+    sceneId: "-",
+    target: "装维工程师场景梳理",
+    location: "苏州铁通4F会议室",
+    owner: "邵新",
+    participants: "苏州移动 网络部：邵新\n装维队长*1+装维队员*1\n好活科技：蔡俊、丁金辉",
+    status: "通过",
+    outcome: "装维工程师日工作流",
+    photos: ["assets/schedule/ID_6F7A73C35ECE4EB58049CEC02B95376C.jpg"],
+  },
+  {
+    date: "2026-05-06",
+    period: "下午",
+    time: "14:30-16:00",
+    sceneId: "-",
+    target: "装维工程师随销产品梳理",
+    location: "苏州铁通4F小会议室",
+    owner: "邵新",
+    participants: "苏州移动 网络部：邵新\n吴中营业员*3+后台支撑*1\n好活科技：张明昊、王子寅",
+    status: "通过",
+    outcome: "装维工程师随销产品梳理",
+    photos: ["assets/schedule/ID_E197F26E464A4C5EB03BE775C2BD90BC.jpg"],
+  },
+  {
+    date: "2026-05-07",
+    period: "上午",
+    time: "9:30-12:00",
+    sceneId: "-",
+    target: "复盘及装维工程师故障单业务类型梳理",
+    location: "苏州铁通4F会议室",
+    owner: "邵新",
+    participants: "苏州移动 网络部：邵新\n苏州铁通：周岗\n后台支撑*1\n好活科技：蔡俊、张明昊、丁金辉、王子寅",
+    status: "通过",
+    outcome: "5月6日调研纪要",
+    photos: ["assets/schedule/ID_38AB2A1F99204936A78A519DC47D4670.jpg"],
+  },
+  {
+    date: "2026-05-07",
+    period: "下午",
+    time: "13:30-15:30",
+    sceneId: "-",
+    target: "装维工程师故障单业务类型梳理",
+    location: "苏州铁通4F会议室",
+    owner: "黄晓瑜",
+    participants: "苏州移动 网络部：黄晓瑜\n后台支撑*1\n好活科技：蔡俊、张明昊、丁金辉、王子寅",
+    status: "通过",
+    outcome: "装维工程师故障单排障方案梳理",
+    photos: ["assets/schedule/ID_24DB9843DCC54F7C83CE7F9AC733AAAB.jpg"],
+  },
+  {
+    date: "2026-05-08",
+    period: "下午",
+    time: "15:00-20:00",
+    sceneId: "-",
+    target: "AICP项目背景同步及装维工程师场景演绎剧本同步",
+    location: "苏州铁通4F会议室",
+    owner: "蔡俊",
+    participants: "好活科技：蔡俊、张明昊、丁金辉、王子寅\n相城区装维：钟队长\n园区装维：邓师傅",
+    status: "通过",
+    outcome: "装维工程师工作流程梳理图",
+    photos: [
+      "assets/schedule/ID_0C75DD7978664C489C3F65690E9039B0.jpg",
+      "assets/schedule/ID_1FF8DCB64EDF475FBFC5316711534AFC.jpg",
+      "assets/schedule/ID_C3CD752E0E41483F84137C68A8EF7A28.jpg",
+      "assets/schedule/ID_BAB16E507BEA4C7881A6E5787560896F.jpg",
+    ],
+  },
+];
+
+const AICP_DAILY_SCHEDULES = AICP_SCHEDULE_ROWS.reduce((groups, row) => {
+  groups[row.date] = groups[row.date] || [];
+  groups[row.date].push({ ...row });
+  return groups;
+}, {});
+
 const initialDictionaries = {
-  sceneTypes: ["基本保障", "服务", "随销", "异常升级", "装维流程", "故障诊断", "投诉预处理"],
-  statuses: ["未开始", "演练中", "通过", "需复盘", "阻塞"],
+  sceneTypes: ["随销", "装维流程", "故障诊断", "投诉预处理"],
+  statuses: ["未开始", "穿越中", "通过", "需复盘", "阻塞"],
   results: ["通过", "部分通过", "未通过", "待确认"],
   rounds: ["1", "2", "3"],
   devices: ["录音卡", "AI耳机", "手机录音", "会议录音", "手机录像", "其他"],
@@ -78,20 +180,20 @@ const initialDictionaries = {
   priorities: ["P0-必须当天解决", "P1-本周解决", "P2-可排期", "P3-观察"],
   impact: ["是", "否", "部分影响"],
   issueStatuses: ["待确认", "待开发", "开发中", "待验收", "已关闭", "暂缓"],
-  roles: ["网络", "市场", "装维", "营业厅", "开发"],
+  roles: ["网络", "市场", "装维", "营业厅", "开发", "运营", "管理"],
   sceneTags: ["测试数据"],
 };
 
 const dictionaryLabels = {
   sceneTypes: "场景类型",
   statuses: "通用状态",
-  results: "演练结果",
+  results: "穿越结果",
   rounds: "轮次",
   devices: "采集设备",
   audioStatuses: "录音分析状态",
   issueTypes: "问题类型",
   priorities: "优先级",
-  impact: "是否影响演练",
+  impact: "是否影响穿越",
   issueStatuses: "问题状态",
   roles: "角色",
   sceneTags: "场景标签",
@@ -114,137 +216,8 @@ const sampleSubmitter = {
 };
 
 const initialData = {
-  scenes: [
-    {
-      id: "BZ-001",
-      type: "基本保障",
-      target: "宽带断网报障识别",
-      description: "家庭用户反馈宽带无法上网，已重启仍无效，并表达马上要开会的紧急诉求。",
-      audioName: "20260506_BZ001_01.mp3",
-      keywords: "断网;重启无效;开会;光猫;区域告警",
-      dataNeeded: "用户原话、灯态、地址/账号、排障动作、是否派单、承诺时限",
-      devSupport: "训练AI识别断网类型、排障路径、派单边界和安抚话术",
-      owner: "邵新",
-      status: "未开始",
-      note: "",
-    },
-    {
-      id: "BZ-002",
-      type: "基本保障",
-      target: "装机进度查询",
-      description: "新装用户咨询什么时候上门安装，关注预约时间和是否能改约。",
-      audioName: "20260506_BZ002_01.mp3",
-      keywords: "新装;预约;改约;端口;排班",
-      dataNeeded: "订单状态、预约时间、卡点原因、责任人、用户确认结果",
-      devSupport: "支撑AI查询装机状态、解释卡点、输出改约/升级路径",
-      owner: "邵新",
-      status: "未开始",
-      note: "",
-    },
-    {
-      id: "BZ-003",
-      type: "基本保障",
-      target: "电视卡顿/IPTV故障",
-      description: "中年家庭反馈电视卡顿、黑屏或动画片转圈，需要排查IPTV和带宽问题。",
-      audioName: "20260506_BZ003_01.mp3",
-      keywords: "电视卡顿;黑屏;IPTV;动画片;带宽",
-      dataNeeded: "机顶盒状态、测速结果、电视使用场景、处理动作、是否推荐升级",
-      devSupport: "支撑AI识别电视/IPTV故障路径及电视周边产品协同推荐",
-      owner: "邵新",
-      status: "未开始",
-      note: "",
-    },
-    {
-      id: "FW-001",
-      type: "服务",
-      target: "账单费用解释",
-      description: "老用户质疑本月费用变高，怀疑乱扣费，需要解释账单差异。",
-      audioName: "20260506_FW001_01.mp3",
-      keywords: "费用变高;乱扣费;账单;优惠到期;增值业务",
-      dataNeeded: "账期、费用差异项、解释口径、用户是否接受、后续动作",
-      devSupport: "支撑AI做费用拆解、优惠到期解释和申诉/退订建议",
-      owner: "小罗",
-      status: "未开始",
-      note: "",
-    },
-    {
-      id: "FW-002",
-      type: "服务",
-      target: "套餐变更咨询",
-      description: "用户希望降档或更换套餐，需要查询合约、用量并给出可办理方案。",
-      audioName: "20260506_FW002_01.mp3",
-      keywords: "套餐太贵;降档;合约;用量;生效时间",
-      dataNeeded: "当前套餐、合约限制、用量、推荐方案、生效时间、用户确认结果",
-      devSupport: "支撑AI推荐套餐方案并说明合约/生效/风险边界",
-      owner: "小罗",
-      status: "未开始",
-      note: "",
-    },
-    {
-      id: "FW-003",
-      type: "服务",
-      target: "投诉安抚与升级",
-      description: "用户对处理不满要求投诉，情绪较激动，需要安抚并明确升级反馈时间。",
-      audioName: "20260506_FW003_01.mp3",
-      keywords: "投诉;没人处理;等待;升级;反馈时限",
-      dataNeeded: "用户情绪、历史工单、安抚话术、升级对象、反馈节点",
-      devSupport: "支撑AI识别情绪风险、进入纯服务模式、生成升级闭环",
-      owner: "姚炳阳",
-      status: "未开始",
-      note: "情绪触发重点样本",
-    },
-    {
-      id: "SX-001",
-      type: "随销",
-      target: "故障后提速/组网机会识别",
-      description: "故障处理后，用户提到孩子上网课、打游戏卡顿，存在提速或家庭组网机会。",
-      audioName: "20260506_SX001_01.mp3",
-      keywords: "卡顿;上网课;打游戏;多设备;组网",
-      dataNeeded: "当前套餐、设备数、户型、痛点、推荐产品、用户意向",
-      devSupport: "支撑AI先服务后推荐、识别商机、控制推荐时机和话术",
-      owner: "杨浩",
-      status: "未开始",
-      note: "",
-    },
-    {
-      id: "SX-003",
-      type: "随销",
-      target: "FTTR/家庭组网推荐",
-      description: "上门服务中发现卧室信号弱，用户愿意改善但担心价格。",
-      audioName: "20260506_SX003_01.mp3",
-      keywords: "卧室信号弱;路由器;FTTR;价格;合约",
-      dataNeeded: "测速结果、房间布局、报价、异议、是否留资/成交",
-      devSupport: "支撑AI用测速证据推荐FTTR，处理价格和合约合规问题",
-      owner: "杨浩",
-      status: "未开始",
-      note: "报价和合规重点",
-    },
-    {
-      id: "YC-001",
-      type: "异常升级",
-      target: "多意图拆分与转人工",
-      description: "用户一次说网络慢、账单不对、优惠没给，AI需要拆分并判断处理顺序。",
-      audioName: "20260506_YC001_01.mp3",
-      keywords: "网慢;账单不对;优惠;多个问题;转人工",
-      dataNeeded: "用户多诉求原话、AI拆分结果、追问、转人工原因",
-      devSupport: "支撑AI多意图识别、上下文保留和人工转接摘要",
-      owner: "产品/开发",
-      status: "未开始",
-      note: "",
-    },
-  ],
-  schedule: [
-    ["上午", "09:00-09:30", "-", "开场+人员到位+设备调试+流程讲解", "铁通4楼", "邵新", "全体到场", "未开始"],
-    ["上午", "09:30-10:30", "BZ-001", "宽带断网报障识别", "铁通4楼", "邵新", "M-A / 用户1 / AI-EAR / 记录员", "未开始"],
-    ["上午", "10:40-11:30", "BZ-002", "装机进度查询", "铁通4楼", "邵新", "M-B / 用户2 / AI-EAR / 记录员", "未开始"],
-    ["上午", "11:30-12:20", "BZ-003", "电视卡顿/IPTV故障", "铁通4楼", "邵新", "M-A / 用户2 / AI-EAR / 记录员", "未开始"],
-    ["下午", "13:30-14:10", "FW-001", "账单费用解释", "铁通4楼", "小罗", "服务支撑 / 用户 / AI-EAR / 记录员", "未开始"],
-    ["下午", "14:10-14:50", "FW-003", "投诉安抚与升级", "铁通4楼", "姚炳阳", "服务支撑 / 投诉客户 / AI-EAR / 记录员", "未开始"],
-    ["下午", "15:00-15:50", "SX-001", "故障后提速/组网机会识别", "333/铁通待定", "杨浩", "一线 / 用户 / AI-EAR / 记录员", "未开始"],
-    ["下午", "16:00-16:50", "SX-003", "FTTR/家庭组网推荐", "333/铁通待定", "杨浩", "培推师 / 用户 / AI-EAR / 记录员", "未开始"],
-    ["下午", "17:00-17:30", "YC-001", "多意图拆分与转人工", "铁通4楼", "产品/开发", "产品 / 开发 / AI-OBS / 记录员", "未开始"],
-    ["收口", "17:30-18:00", "-", "当日总结+数据交付确认", "铁通4楼", "邵新+好活", "全体核心人员", "未开始"],
-  ],
+  scenes: [],
+  schedule: structuredClone(AICP_DAILY_SCHEDULES[DEFAULT_WORK_DATE] || []),
   // NOTE: records/audio/issues are intentionally empty in initialData.
   // The frontend's normalizeState() falls back to these arrays whenever
   // the server returns an empty state object. If we shipped non-empty
@@ -258,7 +231,7 @@ const initialData = {
   currentUser: structuredClone(EMPTY_USER),
   users: structuredClone(defaultUsers),
   dictionaries: structuredClone(initialDictionaries),
-  dailySchedules: {},
+  dailySchedules: structuredClone(AICP_DAILY_SCHEDULES),
   dailySummaries: {},
   summary: {
     completed: "",
@@ -475,8 +448,9 @@ function normalizeState(saved) {
 
 function cloneScheduleTemplate(source = initialData.schedule) {
   return structuredClone(source || []).map((row) => {
-    const next = Array.isArray(row) ? [...row] : [];
-    if (next.length >= 8) next[7] = "未开始";
+    const next = Array.isArray(row) ? [...row] : { ...row, photos: [...(row.photos || [])] };
+    if (Array.isArray(next) && next.length >= 8) next[7] = "未开始";
+    if (!Array.isArray(next)) next.status = "未开始";
     return next;
   });
 }
@@ -495,12 +469,12 @@ function emptySummary() {
 function getScheduleForDate(date = activeScheduleDate, source = state) {
   if (!source.dailySchedules) source.dailySchedules = {};
   if (!source.dailySchedules[date]) {
-    source.dailySchedules[date] = cloneScheduleTemplate(source.dailySchedules[DEFAULT_WORK_DATE] || source.schedule || initialData.schedule);
+    source.dailySchedules[date] = cloneScheduleTemplate(initialData.dailySchedules?.[date] || source.dailySchedules[DEFAULT_WORK_DATE] || source.schedule || initialData.schedule);
   }
   return source.dailySchedules[date];
 }
 
-function getSummaryForDate(date = activeSummaryDate, source = state) {
+function getSummaryForDate(date = DEFAULT_WORK_DATE, source = state) {
   if (!source.dailySummaries) source.dailySummaries = {};
   if (!source.dailySummaries[date]) source.dailySummaries[date] = emptySummary();
   return source.dailySummaries[date];
@@ -684,7 +658,7 @@ function matchesQuery(item, query) {
 }
 
 function hasUser() {
-  return Boolean(state.currentUser?.name && state.currentUser?.phone && state.currentUser?.unit && state.currentUser?.role);
+  return Boolean(state.currentUser?.name && state.currentUser?.unit && state.currentUser?.role);
 }
 
 function currentUserFields() {
@@ -748,7 +722,6 @@ function escapeHtml(value = "") {
 }
 
 function renderAll() {
-  syncDateInputs();
   renderKpis();
   renderSchedule();
   renderSceneQuery();
@@ -758,16 +731,33 @@ function renderAll() {
   renderIssues();
   renderUsers();
   renderDictionaries();
-  fillSummary();
   renderLoginState();
   hydrateAudioPlayers();
 }
 
-function syncDateInputs() {
-  const scheduleDate = $("#scheduleDate");
-  const summaryDate = $("#summaryDate");
-  if (scheduleDate && scheduleDate.value !== activeScheduleDate) scheduleDate.value = activeScheduleDate;
-  if (summaryDate && summaryDate.value !== activeSummaryDate) summaryDate.value = activeSummaryDate;
+function scheduleDateList() {
+  const dates = Object.keys(state.dailySchedules || {})
+    .filter((date) => Array.isArray(state.dailySchedules[date]) && state.dailySchedules[date].length)
+    .sort();
+  return dates;
+}
+
+function formatScheduleDateLabel(date) {
+  const match = /^\d{4}-(\d{2})-(\d{2})$/.exec(date);
+  if (!match) return date;
+  return `${Number(match[1])}月${Number(match[2])}日`;
+}
+
+function renderScheduleTabs() {
+  const tabs = $("#scheduleDateTabs");
+  if (!tabs) return;
+  const dates = scheduleDateList();
+  const items = [{ value: ALL_SCHEDULE_DATES, label: "全部" }, ...dates.map((d) => ({ value: d, label: formatScheduleDateLabel(d) }))];
+  tabs.innerHTML = items
+    .map(
+      (item) => `<button type="button" class="schedule-tab${item.value === activeScheduleDate ? " active" : ""}" data-schedule-tab="${attr(item.value)}" role="tab" aria-selected="${item.value === activeScheduleDate}">${escapeHtml(item.label)}</button>`,
+    )
+    .join("");
 }
 
 function renderKpis() {
@@ -778,24 +768,78 @@ function renderKpis() {
   $("#kpiOpenIssues").textContent = state.issues.filter((issue) => !["已关闭", "暂缓"].includes(issue.status)).length;
 }
 
-function renderSchedule() {
-  const schedule = getScheduleForDate(activeScheduleDate);
-  $("#scheduleBody").innerHTML = schedule
-    .map((row, index) => ({ row, index }))
-    .filter(({ row }) => matchesQuery(row, filters.schedule))
+function scheduleValue(row, key) {
+  if (!Array.isArray(row)) return row?.[key] || "";
+  const indexMap = {
+    period: 0,
+    time: 1,
+    sceneId: 2,
+    target: 3,
+    location: 4,
+    owner: 5,
+    participants: 6,
+    status: 7,
+    outcome: 8,
+  };
+  return row[indexMap[key]] || "";
+}
+
+function schedulePhotos(row) {
+  return Array.isArray(row) ? [] : row?.photos || [];
+}
+
+function scheduleSearchText(row) {
+  return {
+    period: scheduleValue(row, "period"),
+    time: scheduleValue(row, "time"),
+    sceneId: scheduleValue(row, "sceneId"),
+    target: scheduleValue(row, "target"),
+    location: scheduleValue(row, "location"),
+    owner: scheduleValue(row, "owner"),
+    participants: scheduleValue(row, "participants"),
+    outcome: scheduleValue(row, "outcome"),
+    status: scheduleValue(row, "status"),
+  };
+}
+
+function renderSchedulePhotos(row) {
+  const photos = schedulePhotos(row);
+  if (!photos.length) return `<span class="muted">无</span>`;
+  return `<div class="schedule-photos">${photos
     .map(
-      ({ row, index }) => `
+      (src, index) => `
+        <button class="schedule-photo" type="button" data-zoom-src="${attr(src)}" data-zoom-title="${attr(scheduleValue(row, "target"))} 照片${index + 1}">
+          <img src="${attr(src)}" alt="${attr(scheduleValue(row, "target"))} 照片${index + 1}" loading="lazy" />
+        </button>
+      `,
+    )
+    .join("")}</div>`;
+}
+
+function renderSchedule() {
+  renderScheduleTabs();
+  const dates = scheduleDateList();
+  const targetDates = activeScheduleDate === ALL_SCHEDULE_DATES ? dates : [activeScheduleDate];
+  const rows = targetDates.flatMap((date) =>
+    (state.dailySchedules?.[date] || []).map((row, index) => ({ row, date, index })),
+  );
+  $("#scheduleBody").innerHTML = rows
+    .filter(({ row }) => matchesQuery(scheduleSearchText(row), filters.schedule))
+    .map(
+      ({ row, date, index }) => `
         <tr>
-          ${row
-            .map((cell, cellIndex) => {
-              if (cellIndex === 7) {
-                return `<td><select data-schedule-index="${index}">${dict("statuses")
-                  .map((option) => `<option ${option === cell ? "selected" : ""}>${option}</option>`)
-                  .join("")}</select></td>`;
-              }
-              return `<td>${escapeHtml(cell)}</td>`;
-            })
-            .join("")}
+          <td class="col-date">${escapeHtml(formatScheduleDateLabel(date))}</td>
+          <td><span class="tag">${escapeHtml(scheduleValue(row, "period"))}</span></td>
+          <td>${escapeHtml(scheduleValue(row, "time"))}</td>
+          <td class="schedule-target">${escapeHtml(scheduleValue(row, "target"))}</td>
+          <td>${escapeHtml(scheduleValue(row, "location"))}</td>
+          <td>${escapeHtml(scheduleValue(row, "owner"))}</td>
+          <td class="schedule-participants">${escapeHtml(scheduleValue(row, "participants")).replaceAll("\n", "<br />")}</td>
+          <td>${escapeHtml(scheduleValue(row, "outcome"))}</td>
+          <td>${renderSchedulePhotos(row)}</td>
+          <td><select data-schedule-date="${attr(date)}" data-schedule-index="${index}">${dict("statuses")
+            .map((option) => `<option ${option === scheduleValue(row, "status") ? "selected" : ""}>${option}</option>`)
+            .join("")}</select></td>
         </tr>
       `,
     )
@@ -921,6 +965,130 @@ function attr(value = "") {
   return escapeHtml(value).replaceAll("'", "&#39;");
 }
 
+function formatFileSize(bytes = 0) {
+  const value = Number(bytes) || 0;
+  if (value < 1024) return `${value} B`;
+  if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`;
+  return `${(value / 1024 / 1024).toFixed(1)} MB`;
+}
+
+function formatDateTime(value = "") {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleString("zh-CN");
+}
+
+function renderKbFiles() {
+  const body = $("#kbFilesBody");
+  if (!body) return;
+  if (!kbFiles.length) {
+    body.innerHTML = `<tr><td colspan="4">还没有上传维护文件。</td></tr>`;
+    return;
+  }
+  body.innerHTML = kbFiles
+    .map((file) => {
+      const isManaged = file.source !== "builtin";
+      const previewDisabled = file.previewKind === "office" ? "disabled" : "";
+      const previewTitle = file.previewKind === "office" ? "Office 文件请下载查看" : "预览";
+      const sourceLabel = file.source === "builtin" ? "内置资料" : "维护上传";
+      const deleteButton = isManaged
+        ? `<button class="ghost danger" type="button" data-kb-delete="${attr(file.id)}">删除</button>`
+        : "";
+      return `
+        <tr>
+          <td>
+            <div class="kb-file-name">
+              <strong>${escapeHtml(file.fileName)}</strong>
+              <span>${escapeHtml(sourceLabel)} · ${escapeHtml(file.extension || "")} · ${escapeHtml(file.previewKind || "")}</span>
+            </div>
+          </td>
+          <td>${formatFileSize(file.size)}</td>
+          <td>${escapeHtml(formatDateTime(file.uploadedAt))}</td>
+          <td>
+            <div class="kb-file-actions">
+              <button class="ghost" type="button" data-kb-preview="${attr(file.id)}" ${previewDisabled}>${previewTitle}</button>
+              <a href="${apiUrl(`kb-files/${encodeURIComponent(file.id)}/download`)}" download>下载</a>
+              ${deleteButton}
+            </div>
+          </td>
+        </tr>
+      `;
+    })
+    .join("");
+}
+
+function clearKbPreview() {
+  const title = $("#kbPreviewTitle");
+  const body = $("#kbPreviewBody");
+  if (!title || !body) return;
+  title.textContent = "文件预览";
+  body.innerHTML = `<p>选择文件后可预览内置资料和维护上传文件。内置 Word、Excel、PPT 会显示抽取后的文本内容。</p>`;
+}
+
+async function loadKbFiles() {
+  const body = $("#kbFilesBody");
+  if (body) body.innerHTML = `<tr><td colspan="4">正在加载知识库文件…</td></tr>`;
+  try {
+    const res = await fetch(apiUrl("kb-files"));
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    kbFiles = Array.isArray(data.files) ? data.files : [];
+    renderKbFiles();
+  } catch (err) {
+    if (body) body.innerHTML = `<tr><td colspan="4">知识库文件加载失败：${escapeHtml(err.message)}</td></tr>`;
+  }
+}
+
+async function uploadKbFile(file) {
+  if (!file) return;
+  const form = new FormData();
+  form.append("file", file, file.name);
+  form.append("fileName", file.name);
+  try {
+    showToast("正在上传知识库文件…");
+    const res = await fetch(apiUrl("kb-files"), { method: "POST", body: form });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(body.error || `HTTP ${res.status}`);
+    await loadKbFiles();
+    showToast("知识库文件已上传。", "success");
+  } catch (err) {
+    showToast(`上传失败：${err.message}`, "error");
+  }
+}
+
+async function previewKbFile(fileId) {
+  const file = kbFiles.find((item) => item.id === fileId);
+  if (!file) return;
+  const title = $("#kbPreviewTitle");
+  const body = $("#kbPreviewBody");
+  if (!title || !body) return;
+  title.textContent = file.fileName;
+  const previewUrl = apiUrl(`kb-files/${encodeURIComponent(file.id)}/preview`);
+  const downloadUrl = apiUrl(`kb-files/${encodeURIComponent(file.id)}/download`);
+  if (file.previewKind === "image") {
+    body.innerHTML = `<img src="${previewUrl}" alt="${attr(file.fileName)}" />`;
+    return;
+  }
+  if (file.previewKind === "pdf") {
+    body.innerHTML = `<iframe src="${previewUrl}" title="${attr(file.fileName)}"></iframe>`;
+    return;
+  }
+  if (file.previewKind === "text") {
+    body.innerHTML = `<p>正在加载文本预览…</p>`;
+    try {
+      const res = await fetch(previewUrl);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const text = await res.text();
+      body.innerHTML = `<pre>${escapeHtml(text)}</pre>`;
+    } catch (err) {
+      body.innerHTML = `<p>文本预览失败：${escapeHtml(err.message)}</p>`;
+    }
+    return;
+  }
+  body.innerHTML = `<p>此格式暂不支持网页内预览，请下载后查看。</p><div class="kb-file-actions"><a href="${downloadUrl}" download>下载文件</a></div>`;
+}
+
 function tagOptions(selected) {
   const tags = uniqueList(["测试数据", ...dict("sceneTags"), selected].filter(Boolean));
   return tags.map((tag) => `<option value="${attr(tag)}" ${tag === selected ? "selected" : ""}>${escapeHtml(tag)}</option>`).join("");
@@ -953,7 +1121,7 @@ const recordFields = [
   ["minutes", "录音时长(分)", "number"],
   ["userText", "用户原话/摘要", "textarea", "field-wide"],
   ["actual", "实际处理/回复", "textarea", "field-wide"],
-  ["result", "演练结果", "selectResult"],
+  ["result", "穿越结果", "selectResult"],
   ["keywords", "关键词/触发词", "textarea", "field-wide"],
   ["problem", "现场问题", "textarea", "field-wide"],
   ["analysis", "大模型待分析点", "textarea", "field-wide"],
@@ -986,7 +1154,7 @@ const issueFields = [
   ["type", "问题类型", "selectIssueType"],
   ["tags", "标签", "selectSceneTag"],
   ["priority", "优先级", "selectPriority"],
-  ["impact", "是否影响5月6日演练", "selectImpact"],
+  ["impact", "是否影响5月6日穿越", "selectImpact"],
   ["owner", "负责人"],
   ["status", "状态", "selectIssueStatus"],
   ["audioName", "关联录音文件"],
@@ -1394,7 +1562,11 @@ function loginUser(user) {
     ...user,
     loginAt: new Date().toISOString(),
   };
-  const existing = state.users.find((item) => item.phone === state.currentUser.phone || item.name === state.currentUser.name);
+  const phone = state.currentUser.phone;
+  const existing = state.users.find((item) => {
+    if (phone && item.phone && item.phone === phone) return true;
+    return item.name === state.currentUser.name && (item.unit || "") === (state.currentUser.unit || "");
+  });
   if (existing) {
     Object.assign(existing, state.currentUser);
   } else {
@@ -1565,16 +1737,6 @@ function syncFormOptions() {
   renderLoginRoleOptions();
 }
 
-function fillSummary() {
-  const summary = getSummaryForDate(activeSummaryDate);
-  $("#summaryCompleted").value = summary.completed || "";
-  $("#summaryTopAudio").value = summary.topAudio || "";
-  $("#summaryAiGap").value = summary.aiGap || "";
-  $("#summaryBlocker").value = summary.blocker || "";
-  $("#summaryRerun").value = summary.rerun || "";
-  $("#summaryNext").value = summary.next || "";
-}
-
 function csvEscape(value) {
   return `"${String(value ?? "").replaceAll('"', '""')}"`;
 }
@@ -1685,7 +1847,7 @@ function exportCsv() {
     ]),
     ...Object.entries(state.dailySchedules || {}).flatMap(([date, schedule]) =>
       (schedule || []).map((row, index) => [
-        "演练日程",
+        "穿越日程",
         `${date}-${index + 1}`,
         row[2] || "",
         row[3] || "",
@@ -1704,30 +1866,6 @@ function exportCsv() {
         "",
       ]),
     ),
-    ...Object.entries(state.dailySummaries || {}).map(([date, item]) => [
-      "当日总结",
-      date,
-      "",
-      `${date} 当日总结`,
-      "",
-      "",
-      "",
-      date,
-      item.topAudio || "",
-      [
-        item.aiGap ? `AI能力:${item.aiGap}` : "",
-        item.blocker ? `流程卡点:${item.blocker}` : "",
-        item.rerun ? `复跑场景:${item.rerun}` : "",
-        item.next ? `次日动作:${item.next}` : "",
-      ].filter(Boolean).join("；"),
-      item.completed || "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-    ]),
     ...Object.entries(state.dictionaries).map(([key, values]) => [
       "字典表",
       key,
@@ -1917,19 +2055,6 @@ function initEvents() {
     return saveState(editingKey ? "人员信息修改已提交并同步。" : "新增人员已提交并同步。");
   });
 
-  $("#saveSummaryBtn").addEventListener("click", async () => {
-    state.dailySummaries[activeSummaryDate] = {
-      completed: $("#summaryCompleted").value,
-      topAudio: $("#summaryTopAudio").value,
-      aiGap: $("#summaryAiGap").value,
-      blocker: $("#summaryBlocker").value,
-      rerun: $("#summaryRerun").value,
-      next: $("#summaryNext").value,
-    };
-    syncLegacyDailyFields(activeSummaryDate);
-    await saveState(`${activeSummaryDate} 复盘摘要已提交并同步。`);
-  });
-
   $("#exportJsonBtn").addEventListener("click", exportJson);
   $("#exportCsvBtn").addEventListener("click", exportCsv);
   $("#saveDictionaryBtn").addEventListener("click", () => {
@@ -1942,10 +2067,45 @@ function initEvents() {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       stateVersion = 0;
       await hydrateFromServer();
+      await loadKbFiles();
       showSyncStatus("ok");
       showToast("共享数据已重置。", "success");
     } catch (err) {
       showToast(`重置失败：${err.message}`, "error");
+    }
+  });
+
+  $("#kbFileInput")?.addEventListener("change", async (event) => {
+    const file = event.target.files?.[0];
+    await uploadKbFile(file);
+    event.target.value = "";
+  });
+
+  $("#refreshKbFilesBtn")?.addEventListener("click", () => {
+    loadKbFiles();
+  });
+
+  $("#clearKbPreviewBtn")?.addEventListener("click", clearKbPreview);
+
+  $("#kbFilesBody")?.addEventListener("click", async (event) => {
+    const previewId = event.target.dataset.kbPreview;
+    if (previewId) {
+      await previewKbFile(previewId);
+      return;
+    }
+    const deleteId = event.target.dataset.kbDelete;
+    if (deleteId) {
+      const file = kbFiles.find((item) => item.id === deleteId);
+      if (!file || !doubleConfirm(`删除知识库文件 ${file.fileName}？`, "删除后需要重新上传。")) return;
+      try {
+        const res = await fetch(apiUrl(`kb-files/${encodeURIComponent(deleteId)}`), { method: "DELETE" });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        clearKbPreview();
+        await loadKbFiles();
+        showToast("知识库文件已删除。", "success");
+      } catch (err) {
+        showToast(`删除失败：${err.message}`, "error");
+      }
     }
   });
 
@@ -1971,16 +2131,14 @@ function initEvents() {
     });
   });
 
-  $("#scheduleDate")?.addEventListener("change", (event) => {
-    activeScheduleDate = event.target.value || DEFAULT_WORK_DATE;
-    getScheduleForDate(activeScheduleDate);
+  $("#scheduleDateTabs")?.addEventListener("click", (event) => {
+    const target = event.target.closest("[data-schedule-tab]");
+    if (!target) return;
+    const value = target.dataset.scheduleTab;
+    if (!value || value === activeScheduleDate) return;
+    activeScheduleDate = value;
+    if (value !== ALL_SCHEDULE_DATES) getScheduleForDate(value);
     renderSchedule();
-  });
-
-  $("#summaryDate")?.addEventListener("change", (event) => {
-    activeSummaryDate = event.target.value || DEFAULT_WORK_DATE;
-    getSummaryForDate(activeSummaryDate);
-    fillSummary();
   });
 
   [
@@ -2009,10 +2167,16 @@ function initEvents() {
 
   $("#scheduleBody").addEventListener("change", (event) => {
     const index = event.target.dataset.scheduleIndex;
-    if (index !== undefined) {
-      getScheduleForDate(activeScheduleDate)[Number(index)][7] = event.target.value;
-      syncLegacyDailyFields(activeScheduleDate);
-      saveState(`${activeScheduleDate} 日程状态已更新并同步。`);
+    const date = event.target.dataset.scheduleDate || activeScheduleDate;
+    if (index !== undefined && date && date !== ALL_SCHEDULE_DATES) {
+      const row = getScheduleForDate(date)[Number(index)];
+      if (Array.isArray(row)) {
+        row[7] = event.target.value;
+      } else if (row) {
+        row.status = event.target.value;
+      }
+      syncLegacyDailyFields(date);
+      saveState(`${date} 日程状态已更新并同步。`);
     }
   });
 
@@ -2100,6 +2264,7 @@ async function bootstrap() {
   showSyncStatus("saving", "加载中…");
   try {
     await hydrateFromServer();
+    await loadKbFiles();
     showSyncStatus("ok");
   } catch (err) {
     console.error(err);

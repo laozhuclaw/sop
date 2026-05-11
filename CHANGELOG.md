@@ -5,6 +5,48 @@
 
 ---
 
+## 2026-05-10 — 术语统一：演练 → 穿越
+
+按用户要求把控制台里所有用户可见的"演练"统一改为"穿越"：
+
+- 导航 + h2 + hero 文案：`演练日程` → `穿越日程`，`从演练到训练数据` → `从穿越到训练数据`，`苏州移动现场演练` → `苏州移动现场穿越`。
+- 字典表：`演练中` → `穿越中`，标签 `演练结果` → `穿越结果`，`是否影响演练` → `是否影响穿越`。
+- 表单字段：`是否影响5月6日演练` → `是否影响5月6日穿越`。
+- README 增加术语脚注；脚本注释 + 当日总结菜单同步更新。
+- 历史 CHANGELOG 条目里的"旧演练 ID"等历史叙述保持原文，避免改写历史。
+
+如果生产 `state.json` 里有旧 `status="演练中"`、`results="演练通过"` 等数据，需要再做一次 `import-state.mjs` 全量替换或单独写迁移；本次未涉及。
+
+## 2026-05-10 — 穿越日程同步 AICP-01.xlsx
+
+按 `kb/AICP-01.xlsx` 的 9 行原始记录刷新 6 条日程：
+
+- 牵头人修正：5/6 上午、5/7 下午改为「黄晓瑜」；5/8 下午改为「蔡俊」（之前误录朱江）。
+- 穿越人员补全：5/7 上午增补「苏州铁通 周岗」；5/8 下午改为「相城区装维 钟队长 + 园区装维队员 邓师傅 + 好活科技 4 人」；其余行新增牵头单位前缀，便于一眼看出归属。
+- 10 张「会议成果」图重新从 xlsx 提取（cellimages → media/image*.jpeg），按长边 1600px 重压到 ~400KB，覆盖 `console/assets/schedule/ID_*.jpg`。
+- `defaultUsers` 增补 6 人：黄晓瑜、周岗、丁金辉、李明、钟队长、邓师傅。
+- 同步快照：`server/schedule-aicp-01.json`，通过 `import-state.mjs` 推送到生产覆盖 `dailySchedules` 和 `users`。
+
+```bash
+cd console
+SSHPASS='<password>' ./deploy.sh
+cd server
+node import-state.mjs schedule-aicp-01.json http://47.102.216.22/sop
+```
+
+## 2026-05-10 — 知识库文件维护
+
+在"装维知识库 → 资料原文"中新增维护文件区：
+
+- 统一展示内置资料和维护上传文件，不再只有上传文件可以进入预览面板。
+- 内置 Word、Excel、PPT 使用 `assets/source/装维资料/extracted_text/` 中的抽取文本预览。
+- 支持上传 `.pdf/.png/.jpg/.webp/.txt/.md/.csv/.doc/.docx/.xls/.xlsx/.ppt/.pptx`。
+- 支持列表维护、删除、下载。
+- 支持图片、PDF、TXT、Markdown、CSV 网页预览；Office 文件提供下载查看。
+- 后端新增 `/api/kb-files` 系列接口，文件持久化到 `server/data/kb-files/`，部署不会覆盖。
+- 上传安全沿用白名单策略：阻断 HTML/SVG/JS，下载和预览均强制规范 `Content-Type`、`nosniff` 和沙箱头。
+- `server/smoke-test.mjs` 增加知识库文件上传、预览、下载、删除和 XSS 防护冒烟测试。
+
 ## 2026-05-10 — 装维知识库 + 场景清单扩展
 
 本次改动把苏州移动装维资料系统化进了 SOP 控制台，并把"场景清单"扩展为覆盖全套装维 SOP 的演练入口。
@@ -31,24 +73,20 @@
 
 ## 二、场景类型扩展
 
-`script.js` `initialDictionaries.sceneTypes` 从 4 类扩到 7 类：
+`script.js` `initialDictionaries.sceneTypes` 当前保留 4 类知识库场景：
 
 ```
-基本保障 / 服务 / 随销 / 异常升级 + 装维流程 / 故障诊断 / 投诉预处理
+随销 / 装维流程 / 故障诊断 / 投诉预处理
 ```
 
 服务端 `dictionaries.sceneTypes` 已通过 `import-state.mjs` 同步更新（version 40+）。
 
 ## 三、场景清单数据
 
-把装维知识库内容沉淀为 27 条知识库场景 + 9 条原演练场景 = 共 36 条：
+把装维知识库内容沉淀为 27 条知识库场景，并清理旧演练 ID，场景清单和下拉项只保留 `KB-*`：
 
 | ID 段 | 类型 | 数量 | 说明 |
 | --- | --- | --- | --- |
-| BZ-001 ~ 003 | 基本保障 | 3 | 原演练 |
-| FW-001 ~ 003 | 服务 | 3 | 原演练 |
-| SX-001/003 | 随销 | 2 | 原演练 |
-| YC-001 | 异常升级 | 1 | 原演练 |
 | KB-SX-001 ~ 013 | 随销（知识库） | 13 | 入户开口/四看/拒绝处理/FTTR 六场景/痛点制造/质差路由全流程/移动看家/电视会员/千兆路由/号卡/异议四步法/家庭画像/收尾 4 步 |
 | KB-LC-001 ~ 005 | 装维流程（知识库） | 5 | 晨会/入户前/入户中/出户前/出户后 |
 | KB-GZ-001 ~ 005 | 故障诊断（知识库） | 5 | 网页慢/游戏卡顿/视频卡顿/弱覆盖/频繁断网 |
@@ -57,27 +95,22 @@
 数据导入文件：
 - `server/kb-scenes.json`（13 条 KB-SX）
 - `server/kb-scenes-v2.json`（14 条 KB-LC/GZ/TS + dictionaries 更新）
-- `server/演练-scenes.json`（9 条原演练场景）
 
 通过 `server/import-state.mjs` 合并到生产 API（http://47.102.216.22/sop/api）。
 
-> 早期 5 条 `SCN-TEST-*` 测试链路场景已删除，因为 KB- 知识库场景 + 演练场景已完整覆盖所有类型。
+> 早期 `SCN-TEST-*` 和 `BZ/FW/SX/YC-*` 旧演练场景已清理，避免下拉项继续出现旧 ID。
 
 ## 四、场景 ID 命名规则
 
 新增统一命名规则，在"场景清单"页面顶部加图例说明：
 
 ```
-[KB-]<类型缩写>-<3位序号>
+KB-<类型缩写>-<3位序号>
 ```
 
-- `KB-` 前缀：知识库场景（培训/SOP）
-- 无前缀：演练场景
+- `KB-` 前缀：所有维护场景统一前缀
 - 类型缩写：
-  - `BZ` 基本保障
-  - `FW` 服务
   - `SX` 随销
-  - `YC` 异常升级
   - `LC` 装维流程
   - `GZ` 故障诊断
   - `TS` 投诉预处理
@@ -97,7 +130,6 @@ SSHPASS='<password>' ./deploy.sh
 cd server
 node import-state.mjs kb-scenes.json http://47.102.216.22/sop
 node import-state.mjs kb-scenes-v2.json http://47.102.216.22/sop
-node import-state.mjs 演练-scenes.json http://47.102.216.22/sop
 ```
 
-最终生产状态：version 43，36 条场景，0 条悬空 schedule 引用。
+最终生产状态：27 条 `KB-*` 场景，旧演练 ID 不再出现在场景清单和下拉项。

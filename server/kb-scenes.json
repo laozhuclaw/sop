@@ -58,7 +58,7 @@
       "status": "未开始",
       "note": "入户必做动作：首三推目标提醒+网格通核查",
       "tags": "装维知识库;随销",
-      "relatedScenes": "SX-003;KB-SX-006;KB-SX-012"
+      "relatedScenes": "KB-SX-006;KB-SX-012"
     },
     {
       "id": "KB-SX-005",
@@ -73,7 +73,7 @@
       "status": "未开始",
       "note": "4痛点禁忌：避免人身攻击/否定用户决策/过度夸大/虚假承诺",
       "tags": "装维知识库;随销",
-      "relatedScenes": "KB-SX-003;KB-SX-006;SX-001"
+      "relatedScenes": "KB-SX-003;KB-SX-006"
     },
     {
       "id": "KB-SX-006",
@@ -88,7 +88,7 @@
       "status": "未开始",
       "note": "销冠示范案例：客厅500M→小房间不到100M的标准切入",
       "tags": "装维知识库;随销",
-      "relatedScenes": "KB-SX-001;KB-SX-005;SX-003"
+      "relatedScenes": "KB-SX-001;KB-SX-005"
     },
     {
       "id": "KB-SX-007",
@@ -118,7 +118,7 @@
       "status": "未开始",
       "note": "区分电视不活跃/存量活跃两类话术；常引用《大奉打更人》《国色芳华》《长安的荔枝》",
       "tags": "装维知识库;随销",
-      "relatedScenes": "BZ-003;KB-SX-012"
+      "relatedScenes": "KB-SX-012"
     },
     {
       "id": "KB-SX-009",
@@ -163,7 +163,7 @@
       "status": "未开始",
       "note": "关键节奏：理解不是赞同，先点头肯定再转移",
       "tags": "装维知识库;随销",
-      "relatedScenes": "FW-002;KB-SX-007;KB-SX-008;KB-SX-009"
+      "relatedScenes": "KB-SX-007;KB-SX-008;KB-SX-009"
     },
     {
       "id": "KB-SX-012",
@@ -193,7 +193,7 @@
       "status": "未开始",
       "note": "适用所有随销产品；企业微信和电话留底是回访关键",
       "tags": "装维知识库;随销",
-      "relatedScenes": "KB-SX-006;FW-001"
+      "relatedScenes": "KB-SX-006"
     }
   ]
 }
